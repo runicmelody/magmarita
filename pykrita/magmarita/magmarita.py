@@ -12,11 +12,57 @@ import os
 import re
 
 from krita import Extension, Krita
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QEvent, QObject, Qt, QTimer
 from PyQt5.QtGui import QKeySequence
-from PyQt5.QtWidgets import QAction, QMessageBox
+from PyQt5.QtWidgets import (
+    QAbstractSpinBox,
+    QAction,
+    QApplication,
+    QComboBox,
+    QKeySequenceEdit,
+    QLineEdit,
+    QMessageBox,
+    QPlainTextEdit,
+    QTextEdit,
+)
 
 from . import keymap
+
+_DIGIT_KEYS = {
+    Qt.Key_1: "1", Qt.Key_2: "2", Qt.Key_3: "3", Qt.Key_4: "4", Qt.Key_5: "5",
+    Qt.Key_6: "6", Qt.Key_7: "7", Qt.Key_8: "8", Qt.Key_9: "9", Qt.Key_0: "0",
+}
+_INPUT_WIDGETS = (QLineEdit, QAbstractSpinBox, QComboBox, QTextEdit,
+                  QPlainTextEdit, QKeySequenceEdit)
+
+
+class _DigitFilter(QObject):
+    """Fallback so the number keys work even if Krita does not dispatch our
+    plugin actions.  Ignored while typing into any input widget."""
+
+    def __init__(self, extension):
+        super(_DigitFilter, self).__init__()
+        self.ext = extension
+
+    def eventFilter(self, obj, event):
+        try:
+            if event.type() != QEvent.KeyPress:
+                return False
+            if event.modifiers() != Qt.NoModifier:
+                return False
+            key = _DIGIT_KEYS.get(event.key())
+            if not key or key not in self.ext._preset_by_key:
+                return False
+            if QApplication.activeModalWidget() is not None:
+                return False
+            if isinstance(QApplication.focusWidget(), _INPUT_WIDGETS):
+                return False
+            if not self.ext._has_open_document():
+                return False
+            self.ext._set_preset(self.ext._preset_by_key[key])
+            return True
+        except Exception:
+            return False
 
 DIGITS = "1234567890"
 
@@ -43,6 +89,9 @@ class MagmaRitaExtension(Extension):
         self._slot_actions = []
         self._preset_by_index = {}
         self._preset_by_name = {}
+        self._preset_by_key = {}
+        self._digit_filter = None
+        self._filter_installed = False
 
     def setup(self):
         pass
@@ -72,11 +121,20 @@ class MagmaRitaExtension(Extension):
         self._act_about = window.createAction("magmarita_about", "About MagmaRita")
         self._act_about.triggered.connect(self._on_about)
 
+        if not self._filter_installed:
+            app = QApplication.instance()
+            if app is not None:
+                self._digit_filter = _DigitFilter(self)
+                app.installEventFilter(self._digit_filter)
+                self._filter_installed = True
+                _log("[filter] digit fallback installed")
+
         QTimer.singleShot(2500, self._bootstrap)
 
     def _apply_slots(self):
         self._preset_by_index = {}
         self._preset_by_name = {}
+        self._preset_by_key = {}
         for i, act in enumerate(self._slot_actions):
             slot = self._slots[i] if i < len(self._slots) else {}
             preset = (slot or {}).get("preset", "") or ""
@@ -84,21 +142,23 @@ class MagmaRitaExtension(Extension):
             if preset:
                 self._preset_by_index[i] = preset
                 self._preset_by_name[act.objectName()] = preset
+                if key:
+                    self._preset_by_key[key] = preset
                 act.setText("Magma preset %d (%s)" % (i + 1, preset))
                 act.setShortcut(QKeySequence(key) if key else QKeySequence())
             else:
                 act.setText("Magma preset slot %d" % (i + 1))
                 act.setShortcut(QKeySequence())
 
-    def _activate_preset(self):
+    def _has_open_document(self):
         try:
-            sender = self.sender()
-            if sender is None:
-                return
-            preset_name = self._preset_by_name.get(sender.objectName())
-            if not preset_name:
-                _log("[preset] no mapping for %r" % sender.objectName())
-                return
+            w = Krita.instance().activeWindow()
+            return bool(w and w.views() and Krita.instance().activeDocument())
+        except Exception:
+            return False
+
+    def _set_preset(self, preset_name):
+        try:
             window = Krita.instance().activeWindow()
             if not window or not window.views():
                 return
@@ -106,13 +166,23 @@ class MagmaRitaExtension(Extension):
             if not preset:
                 _log("[preset] not found: %s" % preset_name)
                 return
-            _log("[preset] ok: %s" % preset_name)
             act = Krita.instance().action("KritaShape/KisToolBrush")
             if act is not None:
                 act.trigger()
             window.views()[0].setCurrentBrushPreset(preset)
+            _log("[preset] ok: %s" % preset_name)
         except Exception as exc:  # noqa: BLE001
             _log("[preset] error: %r" % exc)
+
+    def _activate_preset(self):
+        sender = self.sender()
+        if sender is None:
+            return
+        preset_name = self._preset_by_name.get(sender.objectName())
+        if not preset_name:
+            _log("[preset] no mapping for %r" % sender.objectName())
+            return
+        self._set_preset(preset_name)
 
     # ------------------------------------------------------------------
     # Startup bootstrap
