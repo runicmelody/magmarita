@@ -12,7 +12,7 @@ import sys
 import time
 
 APP_NAME = "MagmaRita"
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 HOMEPAGE = "https://github.com/runicmelody/magmarita"
 
 # ---------------------------------------------------------------------------
@@ -64,13 +64,17 @@ SHORTCUTS = {
     # --- Misc ---
     "filter_apply_again": "Ctrl+F; Ctrl+Alt+F",
     "fullscreen": "Ctrl+Shift+F",
-    # --- Tool presets on keys 2..6 (Krita "Ten Brushes" plugin) ---
-    "activate_preset_2": "2",
-    "activate_preset_3": "3",
-    "activate_preset_4": "4",
-    "activate_preset_5": "5",
-    "activate_preset_6": "6",
 }
+
+# Number key -> brush preset.  Activated by the MagmaRita plugin itself, so it
+# does not depend on Krita's Ten Brushes plugin (which needs extra config).
+PRESET_SLOTS = [
+    ("2", "a) Eraser Small"),
+    ("3", "d) Ink-1 Precision"),
+    ("4", "b) Basic-5 Size"),
+    ("5", "a) Eraser Soft"),
+    ("6", "Eraser circle"),
+]
 
 # Shortcut entries MagmaRita prunes from kritashortcutsrc: keys it used to
 # bind in an older version, or bindings it deliberately drops.

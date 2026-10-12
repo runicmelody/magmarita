@@ -20,7 +20,7 @@ Krita can do all of it, but the keys are different. MagmaRita closes that gap:
 | Key | Magma | In Krita (via MagmaRita) |
 |-----|-------|--------------------------|
 | 1 | tool preset 1 (dropper) | Dropper / colour sampler |
-| 2 | tool preset 2 | Small eraser *(Ten Brushes)* |
+| 2 | tool preset 2 | Small eraser |
 | 3 | tool preset 3 | Pen *(Ten Brushes)* |
 | 4 | tool preset 4 | Basic brush *(Ten Brushes)* |
 | 5 | tool preset 5 | Soft eraser *(Ten Brushes)* |

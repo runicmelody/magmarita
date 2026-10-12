@@ -49,7 +49,7 @@ used in "kritashortcutsrc".
 | Ctrl+E | Merge down | merge_layer |
 | Ctrl+J | Duplicate layer | duplicatelayer |
 
-## Tool presets (Ten Brushes)
+## Tool presets (handled by the MagmaRita plugin)
 
 | Key | Preset slot |
 |-----|-------------|
