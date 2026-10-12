@@ -114,6 +114,19 @@ class MagmaRitaDocker(DockWidget):
         self.slots_grid.setSpacing(4)
         lay.addLayout(self.slots_grid)
 
+        toggles = QHBoxLayout()
+        self._toggle_buttons = []
+        for label, action_id, tip in keymap.TOGGLE_BUTTONS:
+            b = QToolButton()
+            b.setText(label)
+            b.setCheckable(True)
+            b.setToolTip(tip)
+            b.clicked.connect(lambda _checked=False, a=action_id: self._toggle(a))
+            toggles.addWidget(b)
+            self._toggle_buttons.append((action_id, b))
+        toggles.addStretch(1)
+        lay.addLayout(toggles)
+
         self.size_slider = QSlider(Qt.Horizontal)
         self.size_slider.setRange(1, 2000)
         self.size_slider.valueChanged.connect(self._on_size)
@@ -232,8 +245,27 @@ class MagmaRitaDocker(DockWidget):
             self.size_label.setText("Size" if preset is None else ("Size - " + preset.name()[:12]))
         except Exception:
             pass
+        self._sync_toggles()
 
     # ------------------------------------------------------------------
+    def _toggle(self, action_id):
+        try:
+            a = Krita.instance().action(action_id)
+            if a is not None:
+                a.trigger()
+        except Exception:
+            pass
+        self._sync_toggles()
+
+    def _sync_toggles(self):
+        for action_id, button in getattr(self, "_toggle_buttons", []):
+            try:
+                a = Krita.instance().action(action_id)
+                if a is not None:
+                    button.setChecked(a.isChecked())
+            except Exception:
+                pass
+
     def _trigger(self, action_id):
         try:
             a = Krita.instance().action(action_id)

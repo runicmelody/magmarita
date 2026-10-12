@@ -14,7 +14,7 @@ import sys
 import time
 
 APP_NAME = "MagmaRita"
-VERSION = "0.6.1"
+VERSION = "0.7.0"
 HOMEPAGE = "https://github.com/runicmelody/magmarita"
 
 # ---------------------------------------------------------------------------
@@ -90,6 +90,14 @@ TOOL_BUTTONS = [
     ("Move", "KritaTransform/KisToolMove"),
     ("Transform", "KisToolTransform"),
     ("Crop", "KisToolCrop"),
+]
+
+# Checkable toggle buttons in the palette: (label, Krita action id, tooltip).
+TOGGLE_BUTTONS = [
+    ("Pen Pressure", "disable_pressure",
+     "Use Pen Pressure: let pen pressure affect size and opacity"),
+    ("Lock Alpha", "preserve_alpha",
+     "Preserve Alpha: lock the layer's transparency while painting"),
 ]
 
 # Number key -> Krita tool action (for keys that are tools, not presets).

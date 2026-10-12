@@ -129,6 +129,7 @@ area and pick it). It gives you a compact panel:
   Move, Transform, Crop;
 * the ten **brush-preset slots** with thumbnails - **click to activate**,
   **right-click** to assign a preset, assign a key, or clear the slot;
+* **Pen Pressure** and **Lock Alpha** toggle buttons;
 * **Size** and **Opacity** sliders for the current brush;
 * **Settings...** and **Apply keymap** buttons.
 

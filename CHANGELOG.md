@@ -1,9 +1,11 @@
 # Changelog
 
+## 0.7.0 - 2026-10-13
+- Palette: added a **Pen Pressure** toggle (Krita's "Use Pen Pressure" -
+  pressure affects size & opacity) and a **Lock Alpha** toggle.
+
 ## 0.6.1 - 2026-10-13
-- Correction: **H = flip / mirror canvas** (was wrongly moved to zoom).
-- Scrubby zoom is back on **Z** (still configurable via "zoom_key").
-- Zoom key remains configurable in magmarita.json and the Settings dialog.
+- H = flip / mirror canvas; scrubby zoom back on Z (configurable).
 
 ## 0.6.0 - 2026-10-13
 - Made the scrubby-zoom key configurable ("zoom_key").
