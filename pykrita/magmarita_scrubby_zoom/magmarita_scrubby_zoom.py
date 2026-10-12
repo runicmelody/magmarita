@@ -34,7 +34,7 @@ import os
 import re
 
 from krita import Extension, Krita
-from PyQt5.QtCore import QEvent, QObject, Qt
+from PyQt5.QtCore import QEvent, QObject, QTimer, Qt
 from PyQt5.QtGui import QCursor, QKeySequence, QPixmap
 from PyQt5.QtWidgets import (
     QApplication,
@@ -144,6 +144,8 @@ class ScrubbyZoomExtension(Extension):
         action.setToolTip("Hold and drag horizontally to zoom relative to the current zoom.")
         action.setShortcut(QKeySequence("Z"))
         action.triggered.connect(self.activate_zoom_mode)
+        # Re-assert after Krita has applied its shortcut scheme.
+        QTimer.singleShot(3000, lambda: action.setShortcut(QKeySequence("Z")))
 
     # ------------------------------------------------------------------
     # Cursor

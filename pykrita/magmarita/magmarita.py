@@ -36,6 +36,7 @@ class MagmaRitaExtension(Extension):
     def __init__(self, parent):
         super(MagmaRitaExtension, self).__init__(parent)
         self._preset_for_action = {}
+        self._preset_actions = []
 
     def setup(self):
         pass
@@ -50,6 +51,7 @@ class MagmaRitaExtension(Extension):
             act.setShortcut(QKeySequence(key))
             act.triggered.connect(self._activate_preset)
             self._preset_for_action[action_name] = preset_name
+            self._preset_actions.append((act, key))
 
         # --- menu actions ---
         self._act_apply = window.createAction("magmarita_apply", "Apply Magma keymap")
@@ -97,10 +99,10 @@ class MagmaRitaExtension(Extension):
             changed_own = []
             K = Krita.instance()
 
-            # 1) our own preset actions: enforce their shortcut
-            for key, _name in keymap.PRESET_SLOTS:
-                act = K.action("magmarita_preset_" + key)
-                if act is not None and act.shortcut().toString() != key:
+            # 1) our own preset actions: enforce their shortcut (we keep
+            #    direct references, action() may not resolve plugin actions)
+            for act, key in self._preset_actions:
+                if act.shortcut().toString() != key:
                     act.setShortcut(QKeySequence(key))
                     changed_own.append(key)
 
