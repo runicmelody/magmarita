@@ -67,6 +67,15 @@ def _diag(msg):
         pass
 
 
+def _config_zoom_key():
+    try:
+        base = os.environ.get("APPDATA") or os.path.expanduser("~")
+        with open(os.path.join(base, "krita", "magmarita.json"), encoding="utf-8") as f:
+            return json.load(f).get("zoom_key", "H") or "H"
+    except Exception:
+        return "H"
+
+
 def _config_sensitivity():
     try:
         base = os.environ.get("APPDATA") or os.path.expanduser("~")
@@ -162,10 +171,10 @@ class ScrubbyZoomExtension(Extension):
             "tools/scripts",
         )
         action.setToolTip("Hold and drag horizontally to zoom relative to the current zoom.")
-        action.setShortcut(QKeySequence("Z"))
+        action.setShortcut(QKeySequence(_config_zoom_key()))
         action.triggered.connect(self.activate_zoom_mode)
         # Re-assert after Krita has applied its shortcut scheme.
-        QTimer.singleShot(3000, lambda: action.setShortcut(QKeySequence("Z")))
+        QTimer.singleShot(3000, lambda: action.setShortcut(QKeySequence(_config_zoom_key())))
 
     # ------------------------------------------------------------------
     # Cursor

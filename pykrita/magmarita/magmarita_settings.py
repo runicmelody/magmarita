@@ -62,6 +62,10 @@ class MagmaRitaSettings(QDialog):
             self.key_edits.append(ke)
             self.combos.append(cb)
 
+        self.zoomkey = QKeySequenceEdit()
+        self.zoomkey.setKeySequence(QKeySequence(self.cfg.get("zoom_key", "H") or "H"))
+        form.addRow("Scrubby zoom key", self.zoomkey)
+
         self.zoom = QDoubleSpinBox()
         self.zoom.setRange(10.0, 2000.0)
         self.zoom.setSingleStep(10.0)
@@ -81,4 +85,5 @@ class MagmaRitaSettings(QDialog):
             preset = cb.currentText() if cb.currentIndex() > 0 else ""
             slots.append({"key": key, "preset": preset})
         return {"version": 1, "slots": slots,
+                "zoom_key": self.zoomkey.keySequence().toString() or "H",
                 "zoom_sensitivity": float(self.zoom.value())}

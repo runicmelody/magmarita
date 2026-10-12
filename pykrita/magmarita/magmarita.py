@@ -314,10 +314,11 @@ class MagmaRitaExtension(Extension):
                     if act.shortcut().toString() != key:
                         act.setShortcut(QKeySequence(key))
 
+            zkey = self.cfg.get("zoom_key", "H")
             a = K.action("scrubby_zoom_activate")
-            if a is not None and a.shortcut().isEmpty():
-                a.setShortcut(QKeySequence("Z"))
-                filled.append("scrubby_zoom_activate=Z")
+            if a is not None and a.shortcut().toString() != zkey:
+                a.setShortcut(QKeySequence(zkey))
+                filled.append("scrubby_zoom_activate=" + zkey)
 
             for name, keys in keymap.SHORTCUTS.items():
                 a = K.action(name)

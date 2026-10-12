@@ -14,7 +14,7 @@ import sys
 import time
 
 APP_NAME = "MagmaRita"
-VERSION = "0.5.0"
+VERSION = "0.6.0"
 HOMEPAGE = "https://github.com/runicmelody/magmarita"
 
 # ---------------------------------------------------------------------------
@@ -37,14 +37,14 @@ SHORTCUTS = {
     "KisToolTransform": "Shift+T",                 # transform
     "KisToolCrop": "C",                            # crop
     # --- Scrubby zoom (bundled plugin, keeps its classic action id) ---
-    "scrubby_zoom_activate": "Z",                  # hold + drag horizontally
+    "scrubby_zoom_activate": "H",                  # hold + drag horizontally
     # --- View ---
     "view_zoom_in": "=; Ctrl+=",
     "view_zoom_out": "-; Ctrl+-",
     "zoom_to_fit": "Home",
     "zoom_to_100pct": "End",
     "view_show_canvas_only": "Tab",                # toggle UI
-    "mirror_canvas": "H; M",                       # flip horizontally
+    "mirror_canvas": "M",                          # flip horizontally
     "toggle_fg_bg": "X",                           # switch colors
     # --- Editing / selection ---
     "select_all": "Ctrl+A",
@@ -150,7 +150,8 @@ def _default_config():
     for i in range(10):
         key, preset = PRESET_SLOTS[i] if i < len(PRESET_SLOTS) else ("", "")
         slots.append({"key": key, "preset": preset})
-    return {"version": 1, "slots": slots, "zoom_sensitivity": DEFAULT_ZOOM_SENSITIVITY}
+    return {"version": 1, "slots": slots, "zoom_key": "H",
+            "zoom_sensitivity": DEFAULT_ZOOM_SENSITIVITY}
 
 
 def config_path():
@@ -181,6 +182,7 @@ def load_config():
         return default
     cfg.setdefault("version", 1)
     cfg.setdefault("slots", default["slots"])
+    cfg.setdefault("zoom_key", "H")
     cfg.setdefault("zoom_sensitivity", DEFAULT_ZOOM_SENSITIVITY)
     return cfg
 
