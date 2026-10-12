@@ -14,7 +14,7 @@ import sys
 import time
 
 APP_NAME = "MagmaRita"
-VERSION = "0.9.0"
+VERSION = "0.9.1"
 HOMEPAGE = "https://github.com/runicmelody/magmarita"
 
 # ---------------------------------------------------------------------------
@@ -225,6 +225,11 @@ def load_config():
 # takes over: number keys (presets) and = / - / + (zoom).  These live in a
 # canvas-input profile, NOT in the keyboard shortcuts, so they have to be
 # cleared separately or they fight MagmaRita.
+# Whole canvas-input sections MagmaRita clears.  "Change Primary Setting" is
+# Krita's Ctrl+click colour picker, which collides with the Ctrl straight-line
+# assist.
+CANVAS_INPUT_SECTIONS_TO_CLEAR = ["Change Primary Setting"]
+
 CANVAS_INPUT_KEYS_TO_CLEAR = [
     "30", "31", "32", "33", "34", "35", "36", "37", "38", "39",  # 0-9
     "2b", "2d", "3d",                                            # + - =
@@ -255,14 +260,19 @@ def patch_canvas_input():
     out = []
     idx = -1
     removed = 0
+    section = ""
     for line in _read(path).splitlines():
         s = line.strip()
         if s.startswith("[") and s.endswith("]"):
             idx = -1
+            section = s[1:-1]
             out.append(line)
             continue
         if not re.match(r"^\s*\d+\s*=", line):
             out.append(line)
+            continue
+        if section in CANVAS_INPUT_SECTIONS_TO_CLEAR:
+            removed += 1
             continue
         codes = re.search(r"\[([0-9a-fA-F,]+)\]", line)
         if codes:
