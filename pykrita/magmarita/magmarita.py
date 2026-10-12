@@ -320,12 +320,11 @@ class MagmaRitaExtension(Extension):
                 a.setShortcut(QKeySequence(zkey))
                 filled.append("scrubby_zoom_activate=" + zkey)
 
+            # Enforce the Magma keymap (deterministic on every start).
             for name, keys in keymap.SHORTCUTS.items():
                 a = K.action(name)
                 if a is None:
                     filled.append("[missing] " + name)
-                    continue
-                if not a.shortcut().isEmpty():
                     continue
                 seqs = _sequences(keys)
                 if len(seqs) > 1:
@@ -333,6 +332,13 @@ class MagmaRitaExtension(Extension):
                 elif seqs:
                     a.setShortcut(seqs[0])
                 filled.append(name + "=" + keys)
+
+            # Free the keys Krita's defaults would otherwise swallow.
+            for name in keymap.CONFLICT_CLEAR:
+                a = K.action(name)
+                if a is not None and not a.shortcut().isEmpty():
+                    a.setShortcut(QKeySequence())
+                    filled.append("cleared " + name)
 
             _log("=== MagmaRita %s bootstrap ===" % keymap.VERSION)
             for i, act in enumerate(self._slot_actions):

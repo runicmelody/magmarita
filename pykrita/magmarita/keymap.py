@@ -14,7 +14,7 @@ import sys
 import time
 
 APP_NAME = "MagmaRita"
-VERSION = "0.7.0"
+VERSION = "0.7.1"
 HOMEPAGE = "https://github.com/runicmelody/magmarita"
 
 # ---------------------------------------------------------------------------
@@ -59,7 +59,7 @@ SHORTCUTS = {
     "decrease_brush_size": "[",
     "show_brush_presets": "F6",
     # --- Layers ---
-    "add_new_paint_layer": "Shift+N; Ins",
+    "add_new_paint_layer": "Shift+N",
     "merge_layer": "Ctrl+E",
     "duplicatelayer": "Ctrl+J",
     "flatten_image": "Ctrl+Shift+E",
@@ -104,6 +104,18 @@ TOGGLE_BUTTONS = [
 TOOL_KEYS = {
     "1": "KritaSelected/KisToolColorSampler",
 }
+
+# Krita core actions whose DEFAULT shortcut would otherwise steal a key
+# MagmaRita needs (H, U, L, I, Shift+N, Ctrl+Shift+I).  MagmaRita unbinds them
+# so its own keys (and the Magma keymap) win.
+CONFLICT_CLEAR = [
+    "show_color_history",            # H
+    "show_common_colors",            # U
+    "make_brush_color_lighter",      # L
+    "decrease_opacity",              # I
+    "show_minimal_shade_selector",   # Shift+N
+    "invert",                        # Ctrl+Shift+I
+]
 
 # Shortcut entries MagmaRita prunes from kritashortcutsrc: keys it used to
 # bind in an older version, or bindings it deliberately drops.
@@ -312,6 +324,8 @@ def apply(do_backup=True):
     if not any(l.strip() == "[Shortcuts]" for l in lines):
         lines.insert(0, "[Shortcuts]")
     managed = dict(SHORTCUTS)
+    for name in CONFLICT_CLEAR:
+        managed[name] = "none"
     try:
         for i, slot in enumerate(load_config().get("slots", [])):
             key = (slot or {}).get("key", "") or ""
