@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """MagmaRita PyKrita plugin.
 
-* Tools > Scripts > MagmaRita: Apply keymap / Restore / Settings / About.
-* Owns the Magma tool-preset slots on the number keys (configurable).
-* Applies the Magma keymap to Krita's actions at startup and fills in any
-  shortcut Krita did not pick up, so it does not depend on kritashortcutsrc.
-* Writes a diagnostic log to <LOCALAPPDATA>/magmarita-diag.log.
+Tools > Scripts > MagmaRita: Apply keymap / Restore / Settings / About.
+Owns the Magma tool-preset slots on the number keys (configurable) and applies
+the Magma keymap to Krita's actions at startup.
+
+Diagnostics go to <LOCALAPPDATA>/magmarita-diag.log.
 """
 
 import os
@@ -36,48 +36,6 @@ _INPUT_WIDGETS = (QLineEdit, QAbstractSpinBox, QComboBox, QTextEdit,
                   QPlainTextEdit, QKeySequenceEdit)
 
 
-class _DigitFilter(QObject):
-    """Fallback so the number keys work even if Krita does not dispatch our
-    plugin actions.  Ignored while typing into any input widget."""
-
-    def __init__(self, extension):
-        super(_DigitFilter, self).__init__()
-        self.ext = extension
-        self._key_count = 0
-
-    def eventFilter(self, obj, event):
-        try:
-            if event.type() == QEvent.KeyPress and self._key_count < 400:
-                self._key_count += 1
-                fw = QApplication.focusWidget()
-                _log("[key] key=%s mods=%s focus=%s modal=%s" % (
-                    event.key(), int(event.modifiers()),
-                    type(fw).__name__ if fw else None,
-                    QApplication.activeModalWidget() is not None))
-        except Exception:
-            pass
-        try:
-            if event.type() != QEvent.KeyPress:
-                return False
-            if event.modifiers() != Qt.NoModifier:
-                return False
-            key = _DIGIT_KEYS.get(event.key())
-            if not key or key not in self.ext._preset_by_key:
-                return False
-            if QApplication.activeModalWidget() is not None:
-                return False
-            if isinstance(QApplication.focusWidget(), _INPUT_WIDGETS):
-                return False
-            if not self.ext._has_open_document():
-                return False
-            self.ext._set_preset(self.ext._preset_by_key[key])
-            return True
-        except Exception:
-            return False
-
-DIGITS = "1234567890"
-
-
 def _log(msg):
     try:
         path = os.path.join(keymap.config_dir(), "magmarita-diag.log")
@@ -87,8 +45,60 @@ def _log(msg):
         pass
 
 
+def _norm(text):
+    return re.sub(r"[^a-z0-9]", "", (text or "").lower())
+
+
 def _sequences(text):
     return [QKeySequence(s.strip()) for s in text.split(";") if s.strip()]
+
+
+class _DigitFilter(QObject):
+    """Switch presets/tools on number keys - works even if Krita does not
+    dispatch our plugin action shortcuts.  Ignored while typing."""
+
+    def __init__(self, extension):
+        super(_DigitFilter, self).__init__()
+        self.ext = extension
+        self._key_count = 0
+
+    def eventFilter(self, obj, event):
+        try:
+            if event.type() == QEvent.KeyPress and self._key_count < 500:
+                self._key_count += 1
+                fw = QApplication.focusWidget()
+                _log("[key] key=%s mods=%s focus=%s" % (
+                    event.key(), int(event.modifiers()),
+                    type(fw).__name__ if fw else None))
+        except Exception:
+            pass
+        try:
+            if event.type() != QEvent.KeyPress:
+                return False
+            if event.modifiers() != Qt.NoModifier:
+                return False
+            key = _DIGIT_KEYS.get(event.key())
+            if not key:
+                return False
+            if QApplication.activeModalWidget() is not None:
+                return False
+            if isinstance(QApplication.focusWidget(), _INPUT_WIDGETS):
+                return False
+            if not self.ext._has_open_document():
+                return False
+            name = self.ext._preset_by_key.get(key)
+            if name:
+                self.ext._set_preset(name)
+                return True
+            action = self.ext._tool_by_key.get(key)
+            if action:
+                a = Krita.instance().action(action)
+                if a is not None:
+                    a.trigger()
+                    return True
+            return False
+        except Exception:
+            return False
 
 
 class MagmaRitaExtension(Extension):
@@ -101,9 +111,12 @@ class MagmaRitaExtension(Extension):
         self._preset_by_index = {}
         self._preset_by_name = {}
         self._preset_by_key = {}
+        self._tool_by_key = dict(keymap.TOOL_KEYS)
         self._digit_filter = None
         self._filter_installed = False
         self._hooked = set()
+        self._poller = None
+        self._poll_last = None
 
     def setup(self):
         pass
@@ -141,6 +154,7 @@ class MagmaRitaExtension(Extension):
                 self._filter_installed = True
                 _log("[filter] digit fallback installed")
 
+        self._start_poller()
         QTimer.singleShot(2500, self._bootstrap)
 
     def _apply_slots(self):
@@ -162,15 +176,42 @@ class MagmaRitaExtension(Extension):
                 act.setText("Magma preset slot %d" % (i + 1))
                 act.setShortcut(QKeySequence())
 
-    def _make_trigger_logger(self, name):
-        def _cb():
-            try:
-                a = Krita.instance().action(name)
-                _log("[trigger] %s shortcut=%s" % (
-                    name, a.shortcut().toString() if a else "?"))
-            except Exception:
-                _log("[trigger] %s" % name)
-        return _cb
+    # ------------------------------------------------------------------
+    # View poller (diagnostic: catches canvas rotate/zoom from any source)
+    # ------------------------------------------------------------------
+    def _start_poller(self):
+        if self._poller is not None:
+            return
+        self._poller = QTimer()
+        self._poller.setInterval(500)
+        self._poller.timeout.connect(self._poll_view)
+        self._poller.start()
+
+    def _poll_view(self):
+        try:
+            w = Krita.instance().activeWindow()
+            if not w or not w.views():
+                return
+            c = w.views()[0].canvas()
+            cur = (round(c.rotation(), 2), round(c.zoomLevel(), 5))
+            if cur != self._poll_last:
+                self._poll_last = cur
+                _log("[view] rot=%s zoom=%s" % cur)
+        except Exception:
+            pass
+
+    # ------------------------------------------------------------------
+    # Presets
+    # ------------------------------------------------------------------
+    def _resolve_preset(self, name):
+        presets = Krita.instance().resources("preset")
+        if name in presets:
+            return name
+        target = _norm(name)
+        for candidate in presets.keys():
+            if _norm(candidate) == target:
+                return candidate
+        return None
 
     def _has_open_document(self):
         try:
@@ -184,15 +225,16 @@ class MagmaRitaExtension(Extension):
             window = Krita.instance().activeWindow()
             if not window or not window.views():
                 return
-            preset = Krita.instance().resources("preset").get(preset_name)
-            if not preset:
+            resolved = self._resolve_preset(preset_name)
+            if resolved is None:
                 _log("[preset] not found: %s" % preset_name)
                 return
             act = Krita.instance().action("KritaShape/KisToolBrush")
             if act is not None:
                 act.trigger()
-            window.views()[0].setCurrentBrushPreset(preset)
-            _log("[preset] ok: %s" % preset_name)
+            window.views()[0].setCurrentBrushPreset(
+                Krita.instance().resources("preset")[resolved])
+            _log("[preset] ok: %s" % resolved)
         except Exception as exc:  # noqa: BLE001
             _log("[preset] error: %r" % exc)
 
@@ -209,12 +251,21 @@ class MagmaRitaExtension(Extension):
     # ------------------------------------------------------------------
     # Startup bootstrap
     # ------------------------------------------------------------------
+    def _make_trigger_logger(self, name):
+        def _cb():
+            try:
+                a = Krita.instance().action(name)
+                _log("[trigger] %s shortcut=%s" % (
+                    name, a.shortcut().toString() if a else "?"))
+            except Exception:
+                _log("[trigger] %s" % name)
+        return _cb
+
     def _bootstrap(self):
         try:
             K = Krita.instance()
             filled = []
 
-            # 1) preset slots (we hold direct references)
             for i, act in enumerate(self._slot_actions):
                 slot = self._slots[i] if i < len(self._slots) else {}
                 key = (slot or {}).get("key", "") or ""
@@ -222,13 +273,11 @@ class MagmaRitaExtension(Extension):
                     if act.shortcut().toString() != key:
                         act.setShortcut(QKeySequence(key))
 
-            # 2) bundled scrubby zoom
             a = K.action("scrubby_zoom_activate")
             if a is not None and a.shortcut().isEmpty():
                 a.setShortcut(QKeySequence("Z"))
                 filled.append("scrubby_zoom_activate=Z")
 
-            # 3) core Magma shortcuts: fill in only what is missing
             for name, keys in keymap.SHORTCUTS.items():
                 a = K.action(name)
                 if a is None:
@@ -243,30 +292,21 @@ class MagmaRitaExtension(Extension):
                     a.setShortcut(seqs[0])
                 filled.append(name + "=" + keys)
 
-            # 4) diagnostics
             _log("=== MagmaRita %s bootstrap ===" % keymap.VERSION)
             for i, act in enumerate(self._slot_actions):
                 _log("slot %d -> key %r preset %r" % (
                     i + 1, act.shortcut().toString(),
                     self._preset_by_index.get(i, "")))
-            a = K.action("scrubby_zoom_activate")
-            _log("scrubby_zoom_activate -> %s" % (a.shortcut().toString() if a else "(no action)"))
-            for name in keymap.SHORTCUTS:
-                a = K.action(name)
-                _log("core %s -> %s" % (name, a.shortcut().toString() if a else "(no action)"))
-            # every action bound to a bare digit, or rotate/zoom/reset by name
             try:
-                win = Krita.instance().activeWindow()
-                qw = win.qwindow() if win else None
-                for a in (qw.findChildren(QAction) if qw else []):
-                    s = a.shortcut().toString()
-                    text = a.text() or ""
-                    if not s:
-                        continue
-                    if (s in DIGITS) or re.search(r"(?i)rotat|zoom|reset", text):
-                        _log("BIND key=%r action=%r text=%r" % (s, a.objectName(), text))
+                missing = []
+                for slot in self._slots:
+                    p = (slot or {}).get("preset") or ""
+                    if p and self._resolve_preset(p) is None:
+                        missing.append(p)
+                _log("missing presets: %s" % (missing or "none"))
             except Exception as exc:
-                _log("dump error: %r" % exc)
+                _log("preset check error: %r" % exc)
+
             try:
                 for aname in ("rotate_canvas_left", "rotate_canvas_right",
                               "rotate_canvas_reset", "reset_canvas_rotation",
@@ -279,8 +319,10 @@ class MagmaRitaExtension(Extension):
                         continue
                     a.triggered.connect(self._make_trigger_logger(aname))
                     self._hooked.add(aname)
+                    _log("[hook] %s -> %s" % (aname, a.shortcut().toString()))
             except Exception as exc:
                 _log("hook error: %r" % exc)
+
             _log("filled now: %s" % (", ".join(filled) if filled else "(nothing)"))
         except Exception as exc:  # noqa: BLE001
             _log("bootstrap error: %r" % exc)

@@ -13,7 +13,7 @@ import sys
 import time
 
 APP_NAME = "MagmaRita"
-VERSION = "0.3.4"
+VERSION = "0.3.5"
 HOMEPAGE = "https://github.com/runicmelody/magmarita"
 
 # ---------------------------------------------------------------------------
@@ -74,8 +74,13 @@ PRESET_SLOTS = [
     ("3", "d) Ink-1 Precision"),
     ("4", "b) Basic-5 Size"),
     ("5", "a) Eraser Soft"),
-    ("6", "Eraser circle"),
+    ("6", "a) Eraser Circle"),
 ]
+
+# Number key -> Krita tool action (for keys that are tools, not presets).
+TOOL_KEYS = {
+    "1": "KritaSelected/KisToolColorSampler",
+}
 
 # Shortcut entries MagmaRita prunes from kritashortcutsrc: keys it used to
 # bind in an older version, or bindings it deliberately drops.
