@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.2 - 2026-10-13
+- Straight-line assist now switches to the Line tool the moment Ctrl goes down
+  (was on mouse-press, too late for the first stroke).
+
+
 ## 0.9.0 - 2026-10-13
 - **Rotate around the canvas centre**: hold R and drag in a circle to turn the
   canvas (config: rotate_mode = center | scrubby).

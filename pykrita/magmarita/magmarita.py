@@ -110,6 +110,9 @@ class _DigitFilter(QObject):
                     if not self.ext._ctrl_down:
                         self.ext._ctrl_down = True
                         self.ext._ctrl_other_key = False
+                        # Switch tool now, before the mouse press, so the stroke
+                        # is handled by the Line tool from the very start.
+                        self.ext._maybe_start_line_assist()
                 elif self.ext._ctrl_down:
                     self.ext._ctrl_other_key = True
             elif t == QEvent.KeyRelease:
@@ -280,6 +283,8 @@ class MagmaRitaExtension(Extension):
         try:
             if not self.cfg.get("line_assist", True):
                 return
+            if self._line_active:
+                return
             if not self._ctrl_down or self._ctrl_other_key:
                 return
             if QApplication.activeModalWidget() is not None:
@@ -300,14 +305,14 @@ class MagmaRitaExtension(Extension):
         if not getattr(self, "_line_active", False):
             return
         self._line_active = False
+        restore = self.cfg.get("line_restore_tool", "KritaShape/KisToolBrush")
         try:
-            a = Krita.instance().action(
-                self.cfg.get("line_restore_tool", "KritaShape/KisToolBrush"))
+            a = Krita.instance().action(restore)
             if a is not None:
                 a.trigger()
         except Exception:
             pass
-        _log("[line] assist off")
+        _log("[line] assist off -> " + restore)
 
     def _has_open_document(self):
         try:
