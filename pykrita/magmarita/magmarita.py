@@ -10,6 +10,7 @@ Diagnostics go to <LOCALAPPDATA>/magmarita-diag.log.
 
 import os
 import re
+from collections import deque
 
 from krita import Extension, Krita
 from PyQt5.QtCore import QEvent, QObject, Qt, QTimer
@@ -34,6 +35,11 @@ _DIGIT_KEYS = {
 }
 _INPUT_WIDGETS = (QLineEdit, QAbstractSpinBox, QComboBox, QTextEdit,
                   QPlainTextEdit, QKeySequenceEdit)
+_EVENT_NAMES = [n for n in (
+    "KeyPress", "KeyRelease", "NativeGesture", "TouchBegin", "TouchUpdate",
+    "TouchEnd", "Wheel", "MouseButtonPress", "MouseButtonRelease",
+    "TabletPress", "TabletRelease") if hasattr(QEvent, n)]
+_EVENT_TYPES = {getattr(QEvent, n): n for n in _EVENT_NAMES}
 
 
 def _log(msg):
@@ -63,6 +69,24 @@ class _DigitFilter(QObject):
         self._key_count = 0
 
     def eventFilter(self, obj, event):
+        try:
+            name = _EVENT_TYPES.get(event.type())
+            if name:
+                extra = ""
+                if name == "Wheel":
+                    try:
+                        extra = " angle=%s" % event.angleDelta().y()
+                    except Exception:
+                        pass
+                elif name == "NativeGesture":
+                    try:
+                        extra = " gestureType=%s value=%.3f" % (
+                            event.gestureType(), event.value())
+                    except Exception:
+                        pass
+                self.ext._recent.append("[evt] %s%s" % (name, extra))
+        except Exception:
+            pass
         try:
             if event.type() == QEvent.KeyPress and self._key_count < 500:
                 self._key_count += 1
@@ -117,6 +141,7 @@ class MagmaRitaExtension(Extension):
         self._hooked = set()
         self._poller = None
         self._poll_last = None
+        self._recent = deque(maxlen=14)
 
     def setup(self):
         pass
@@ -197,6 +222,8 @@ class MagmaRitaExtension(Extension):
             if cur != self._poll_last:
                 self._poll_last = cur
                 _log("[view] rot=%s zoom=%s" % cur)
+                for line in list(self._recent)[-5:]:
+                    _log("    " + line)
         except Exception:
             pass
 
