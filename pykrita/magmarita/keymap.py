@@ -14,7 +14,7 @@ import sys
 import time
 
 APP_NAME = "MagmaRita"
-VERSION = "0.4.0"
+VERSION = "0.5.0"
 HOMEPAGE = "https://github.com/runicmelody/magmarita"
 
 # ---------------------------------------------------------------------------
@@ -76,6 +76,20 @@ PRESET_SLOTS = [
     ("4", "b) Basic-5 Size"),
     ("5", "a) Eraser Soft"),
     ("6", "a) Eraser Circle"),
+]
+
+# Quick tool buttons shown in the MagmaRita palette (label, Krita action id).
+TOOL_BUTTONS = [
+    ("Dropper", "KritaSelected/KisToolColorSampler"),
+    ("Brush", "KritaShape/KisToolBrush"),
+    ("Erase", "erase_action"),
+    ("Fill", "KritaFill/KisToolFill"),
+    ("Rect", "KritaShape/KisToolRectangle"),
+    ("Select", "KisToolSelectRectangular"),
+    ("Lasso", "KisToolSelectPolygonal"),
+    ("Move", "KritaTransform/KisToolMove"),
+    ("Transform", "KisToolTransform"),
+    ("Crop", "KisToolCrop"),
 ]
 
 # Number key -> Krita tool action (for keys that are tools, not presets).

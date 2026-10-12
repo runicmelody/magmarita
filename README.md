@@ -120,6 +120,18 @@ uninstall.py         uninstaller
 docs/KEYMAP.md       full keymap reference
 ~~~
 
+## Palette (Magma-style panel)
+
+Enable the docker: **Settings > Dockers > MagmaRita** (or right-click a docker
+area and pick it). It gives you a compact panel:
+
+* quick **tool buttons** - Dropper, Brush, Erase, Fill, Rect, Select, Lasso,
+  Move, Transform, Crop;
+* the ten **brush-preset slots** with thumbnails - **click to activate**,
+  **right-click** to assign a preset, assign a key, or clear the slot;
+* **Size** and **Opacity** sliders for the current brush;
+* **Settings...** and **Apply keymap** buttons.
+
 ## Customising
 
 Everything is editable without touching code:

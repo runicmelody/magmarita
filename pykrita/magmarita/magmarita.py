@@ -42,6 +42,13 @@ _EVENT_NAMES = [n for n in (
 _EVENT_TYPES = {getattr(QEvent, n): n for n in _EVENT_NAMES}
 
 
+_EXTENSION = None
+
+
+def get_extension():
+    return _EXTENSION
+
+
 def _log(msg):
     try:
         path = os.path.join(keymap.config_dir(), "magmarita-diag.log")
@@ -129,6 +136,8 @@ class MagmaRitaExtension(Extension):
 
     def __init__(self, parent):
         super(MagmaRitaExtension, self).__init__(parent)
+        global _EXTENSION
+        _EXTENSION = self
         self.cfg = {}
         self._slots = []
         self._slot_actions = []
@@ -181,6 +190,11 @@ class MagmaRitaExtension(Extension):
 
         self._start_poller()
         QTimer.singleShot(2500, self._bootstrap)
+
+    def reload_config(self):
+        self.cfg = keymap.load_config()
+        self._slots = list(self.cfg.get("slots", []))
+        self._apply_slots()
 
     def _apply_slots(self):
         self._preset_by_index = {}

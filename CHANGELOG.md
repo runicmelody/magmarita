@@ -1,14 +1,16 @@
 # Changelog
 
+## 0.5.0 - 2026-10-13
+- **MagmaRita palette docker** (Settings > Dockers > MagmaRita): quick tool
+  buttons, ten brush-preset slots with thumbnails (click to activate,
+  right-click to assign preset/key or clear), brush Size/Opacity sliders,
+  Settings / Apply buttons.
+- Config changes from the palette apply immediately.
+
 ## 0.4.0 - 2026-10-13
-- **Fixed the number keys zooming/rotating the canvas.** Krita's Canvas Input
-  Settings (separate from keyboard shortcuts) bind 1-3 to Zoom Canvas and 4-6
-  to Rotate Canvas by default. MagmaRita now clears those key bindings from the
-  active canvas-input profile, so the number keys are purely MagmaRita's.
-- Also clears the default = / - / + canvas-input zoom bindings so zoom steps
-  once, not twice.
-- 0 = dropper on key 1, big eraser preset fixed (a) Eraser Circle).
-- View poller + event logging for diagnosing unexpected canvas changes.
+- Fixed number keys zooming/rotating the canvas: clears the digit (and = - +)
+  bindings Krita's Canvas Input Settings adds by default.
+- 1 = dropper; big-eraser preset fixed; view/event diagnostics.
 
 ## 0.3.0 - 2026-10-13
 - Configurable preset slots (magmarita.json + Settings dialog).
