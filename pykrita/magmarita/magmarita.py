@@ -53,6 +53,7 @@ class MagmaRitaExtension(Extension):
         self.window = window
         self.cfg = keymap.load_config()
         self._slots = list(self.cfg.get("slots", []))
+        self._slot_actions = []
 
         for i in range(10):
             act = window.createAction(
@@ -102,6 +103,7 @@ class MagmaRitaExtension(Extension):
             if not preset:
                 _log("[preset] not found: %s" % preset_name)
                 return
+            _log("[preset] slot %d -> %s" % (index + 1, preset_name))
             act = Krita.instance().action("KritaShape/KisToolBrush")
             if act is not None:
                 act.trigger()
@@ -118,14 +120,12 @@ class MagmaRitaExtension(Extension):
             filled = []
 
             # 1) preset slots (we hold direct references)
-            for act in self._slot_actions:
-                for i, a in enumerate(self._slot_actions):
-                    if a is act:
-                        slot = self._slots[i] if i < len(self._slots) else {}
-                        key = (slot or {}).get("key", "") or ""
-                        if (slot or {}).get("preset") and key:
-                            if a.shortcut().toString() != key:
-                                a.setShortcut(QKeySequence(key))
+            for i, act in enumerate(self._slot_actions):
+                slot = self._slots[i] if i < len(self._slots) else {}
+                key = (slot or {}).get("key", "") or ""
+                if (slot or {}).get("preset") and key:
+                    if act.shortcut().toString() != key:
+                        act.setShortcut(QKeySequence(key))
 
             # 2) bundled scrubby zoom
             a = K.action("scrubby_zoom_activate")
@@ -161,7 +161,9 @@ class MagmaRitaExtension(Extension):
                 _log("core %s -> %s" % (name, a.shortcut().toString() if a else "(no action)"))
             # every action bound to a bare digit, or rotate/zoom/reset by name
             try:
-                for a in self.window.qwindow().findChildren(QAction):
+                win = Krita.instance().activeWindow()
+                qw = win.qwindow() if win else None
+                for a in (qw.findChildren(QAction) if qw else []):
                     s = a.shortcut().toString()
                     text = a.text() or ""
                     if not s:

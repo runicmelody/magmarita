@@ -13,7 +13,7 @@ import sys
 import time
 
 APP_NAME = "MagmaRita"
-VERSION = "0.3.0"
+VERSION = "0.3.1"
 HOMEPAGE = "https://github.com/runicmelody/magmarita"
 
 # ---------------------------------------------------------------------------

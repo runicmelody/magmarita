@@ -337,35 +337,21 @@ class ScrubbyZoomExtension(Extension):
         return None
 
     def _current_scale(self, view):
-        """Best estimate of the current zoom in ZOOM_CONSTANT units."""
+        """Current zoom, in the units setZoomLevel() accepts (1.0 == 100%).
+
+        Canvas.zoomLevel() returns exactly the value previously passed to
+        setZoomLevel() (verified on Krita 5.3.4), so NO DPI correction is
+        applied.  Dividing by dpi/72 was what made the old version jump out.
+        """
         ui = self._zoom_scale_from_ui()
-        raw = self._canvas_zoom_raw(view)
-        dpi_key = self._dpi_key(view)
-        doc_id = self._get_document_id()
-
-        # 1) The percentage Krita shows is the ground truth.
         if ui is not None:
-            if raw is not None and raw > 0:
-                self.raw_to_scale_factor[dpi_key] = raw / ui
             return _clamp(ui)
-
-        # 2) Fall back to the raw canvas value, corrected with a learned
-        #    factor (or the documented dpi/72 relation on first use).
+        raw = self._canvas_zoom_raw(view)
         if raw is not None and raw > 0:
-            factor = self.raw_to_scale_factor.get(dpi_key)
-            if factor is None:
-                factor = max(self._doc_dpi(view) / REFERENCE_DPI, 1e-3)
-                self.raw_to_scale_factor[dpi_key] = factor
-            candidate = raw / factor
-            remembered = self.document_zoom_cache.get(doc_id) if doc_id else None
-            if remembered and (candidate > remembered * 8.0 or candidate < remembered / 8.0):
-                return _clamp(remembered)
-            return _clamp(candidate)
-
-        # 3) Last resort: what we last set for this document.
+            return _clamp(raw)
+        doc_id = self._get_document_id()
         if doc_id and doc_id in self.document_zoom_cache:
             return _clamp(self.document_zoom_cache[doc_id])
-
         return 1.0
 
     # ------------------------------------------------------------------
@@ -438,6 +424,8 @@ class ScrubbyZoomExtension(Extension):
             x = int(global_pos.x())
             delta_x = x - int(self.last_x)
             self.last_x = x
+            # Guard against a single pointer jump blowing the zoom up.
+            delta_x = max(-300, min(300, delta_x))
 
             # Relative, exponential zoom from the *current* value.
             factor = 2.0 ** (float(delta_x) / float(self.zoom_sensitivity))
