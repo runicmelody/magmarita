@@ -8,12 +8,13 @@ standalone installer.
 
 import json
 import os
+import re
 import shutil
 import sys
 import time
 
 APP_NAME = "MagmaRita"
-VERSION = "0.3.6"
+VERSION = "0.4.0"
 HOMEPAGE = "https://github.com/runicmelody/magmarita"
 
 # ---------------------------------------------------------------------------
@@ -170,6 +171,61 @@ def load_config():
     return cfg
 
 
+# Keys that Krita's *Canvas Input Settings* grab by default and that MagmaRita
+# takes over: number keys (presets) and = / - / + (zoom).  These live in a
+# canvas-input profile, NOT in the keyboard shortcuts, so they have to be
+# cleared separately or they fight MagmaRita.
+CANVAS_INPUT_KEYS_TO_CLEAR = [
+    "30", "31", "32", "33", "34", "35", "36", "37", "38", "39",  # 0-9
+    "2b", "2d", "3d",                                            # + - =
+]
+
+
+def _active_input_profile_name():
+    try:
+        for line in _read(kritarc_path()).splitlines():
+            if line.startswith("currentInputProfile="):
+                return line.split("=", 1)[1].strip()
+    except Exception:
+        pass
+    return "Krita Default"
+
+
+def _profile_filename(name):
+    return re.sub(r"[^a-z0-9]", "", (name or "Krita Default").lower()) + ".profile"
+
+
+def patch_canvas_input():
+    """Drop the number/zoom key bindings from Krita's active canvas-input
+    profile so they stop zooming/rotating the canvas.  Returns count removed."""
+    path = os.path.join(resource_dir(), "input", _profile_filename(_active_input_profile_name()))
+    if not os.path.exists(path):
+        return 0
+    out = []
+    idx = -1
+    removed = 0
+    for line in _read(path).splitlines():
+        s = line.strip()
+        if s.startswith("[") and s.endswith("]"):
+            idx = -1
+            out.append(line)
+            continue
+        if not re.match(r"^\s*\d+\s*=", line):
+            out.append(line)
+            continue
+        codes = re.search(r"\[([0-9a-fA-F,]+)\]", line)
+        if codes:
+            parts = [c.strip().lower() for c in codes.group(1).split(",")]
+            if any(c in CANVAS_INPUT_KEYS_TO_CLEAR for c in parts):
+                removed += 1
+                continue
+        idx += 1
+        out.append(re.sub(r"^\s*\d+", str(idx), line))
+    if removed:
+        _write(path, "\n".join(out) + "\n")
+    return removed
+
+
 def config_dir():
     """Directory that holds kritarc / kritashortcutsrc."""
     if os.name == "nt":
@@ -269,6 +325,8 @@ def apply(do_backup=True):
     except StopIteration:
         lines += ["[python]"] + enables
     _write(p, "\n".join(lines) + "\n")
+
+    patch_canvas_input()
 
     return made
 
