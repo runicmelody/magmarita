@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Service
+ServiceTypes=Krita/PythonPlugin
+X-KDE-Library=magmarita
+X-Python-2-Compatible=false
+Name=MagmaRita
+Comment=Magma-style keyboard shortcuts and tool presets for Magma artists moving to Krita
