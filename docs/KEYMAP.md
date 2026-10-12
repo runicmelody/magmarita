@@ -20,7 +20,7 @@ used in "kritashortcutsrc".
 | V | Move | KritaTransform/KisToolMove |
 | Shift+T | Transform | KisToolTransform |
 | C | - | KisToolCrop |
-| Z | Zoom tool | ZoomTool |
+| Z | Scrubby zoom (hold + drag) | scrubby_zoom_activate |
 
 ## View
 

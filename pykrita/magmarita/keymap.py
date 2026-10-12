@@ -12,7 +12,7 @@ import sys
 import time
 
 APP_NAME = "MagmaRita"
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 HOMEPAGE = "https://github.com/runicmelody/magmarita"
 
 # ---------------------------------------------------------------------------
@@ -34,7 +34,8 @@ SHORTCUTS = {
     "KritaTransform/KisToolMove": "V",             # move
     "KisToolTransform": "Shift+T",                 # transform
     "KisToolCrop": "C",                            # crop
-    "ZoomTool": "Z",                               # zoom tool
+    # --- Scrubby zoom (bundled plugin, keeps its classic action id) ---
+    "scrubby_zoom_activate": "Z",                  # hold + drag horizontally
     # --- View ---
     "view_zoom_in": "=; Ctrl+=",
     "view_zoom_out": "-; Ctrl+-",
@@ -91,6 +92,16 @@ TENBRUSHES_SETTINGS = {
     "tenbrushesAutoBrushOnPress": "True",
     "tenbrushesActivatePrev2ndPress": "True",
     "tenbrushesShowMessage": "True",
+}
+
+# PyKrita plugins MagmaRita switches on.  The stock "scrubby_zoom" plugin is
+# superseded by the MagmaRita copy, so it is disabled to avoid a duplicate
+# action / shortcut conflict.
+PYTHON_PLUGINS = {
+    "enable_tenbrushes": "true",
+    "enable_magmarita": "true",
+    "enable_magmarita_scrubby_zoom": "true",
+    "enable_scrubby_zoom": "false",
 }
 
 
@@ -169,7 +180,7 @@ def apply(do_backup=True):
         lines = lines[:1] + ins + lines[1:]
     else:
         lines = ["[General]"] + ins
-    enables = ["enable_tenbrushes=true", "enable_magmarita=true"]
+    enables = [k + "=" + v for k, v in PYTHON_PLUGINS.items()]
     try:
         i = next(n for n, l in enumerate(lines) if l.strip() == "[python]")
         j = i + 1

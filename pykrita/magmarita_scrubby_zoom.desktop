@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Service
+ServiceTypes=Krita/PythonPlugin
+X-KDE-Library=magmarita_scrubby_zoom
+X-Python-2-Compatible=false
+Name=MagmaRita Scrubby Zoom
+Comment=Hold a key and drag horizontally to zoom relative to the current zoom level

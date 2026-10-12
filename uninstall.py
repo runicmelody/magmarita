@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""MagmaRita uninstaller: restores Krita's previous config and removes the plugin."""
+"""MagmaRita uninstaller: restores Krita's previous config and removes plugins."""
 
 import importlib.util
 import os
 import shutil
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+
+PLUGINS = [
+    ("magmarita", "magmarita.desktop"),
+    ("magmarita_scrubby_zoom", "magmarita_scrubby_zoom.desktop"),
+]
 
 
 def load_keymap():
@@ -20,14 +25,15 @@ def load_keymap():
 def main():
     km = load_keymap()
     dst_root = os.path.join(km.resource_dir(), "pykrita")
-    pkg = os.path.join(dst_root, "magmarita")
-    if os.path.isdir(pkg):
-        shutil.rmtree(pkg)
-        print("+ removed plugin %s" % pkg)
-    dt = os.path.join(dst_root, "magmarita.desktop")
-    if os.path.exists(dt):
-        os.remove(dt)
-        print("+ removed %s" % dt)
+    for folder, desktop in PLUGINS:
+        pkg = os.path.join(dst_root, folder)
+        if os.path.isdir(pkg):
+            shutil.rmtree(pkg)
+            print("+ removed plugin %s" % pkg)
+        dt = os.path.join(dst_root, desktop)
+        if os.path.exists(dt):
+            os.remove(dt)
+            print("+ removed %s" % dt)
     restored = km.restore_latest()
     for r in restored:
         print("+ restored %s" % r)

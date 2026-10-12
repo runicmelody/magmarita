@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ActionCollection version="2" name="Scripts">
+    <Actions category="Scripts">
+        <text>MagmaRita Scrubby Zoom</text>
+        <Action name="scrubby_zoom_activate">
+            <icon></icon>
+            <text>Horizontal Relative Zoom</text>
+            <whatsThis>Hold to activate scrubby zoom mode AKA horizontal drag zooming</whatsThis>
+            <toolTip>Horizontal Relative Zoom</toolTip>
+            <iconText>Horizontal Relative Zoom</iconText>
+            <activationFlags>10000</activationFlags>
+            <activationConditions>0</activationConditions>
+            <shortcut>z</shortcut>
+            <isCheckable>false</isCheckable>
+            <statusTip></statusTip>
+        </Action>
+    </Actions>
+</ActionCollection>
