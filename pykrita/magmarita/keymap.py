@@ -6,13 +6,14 @@ Krita / Qt imports so it can be reused by the PyKrita plugin and by the
 standalone installer.
 """
 
+import json
 import os
 import shutil
 import sys
 import time
 
 APP_NAME = "MagmaRita"
-VERSION = "0.2.1"
+VERSION = "0.3.0"
 HOMEPAGE = "https://github.com/runicmelody/magmarita"
 
 # ---------------------------------------------------------------------------
@@ -78,7 +79,15 @@ PRESET_SLOTS = [
 
 # Shortcut entries MagmaRita prunes from kritashortcutsrc: keys it used to
 # bind in an older version, or bindings it deliberately drops.
-REMOVE_SHORTCUTS = ["ZoomTool"]
+REMOVE_SHORTCUTS = [
+    "ZoomTool",
+    # v0.2 and earlier used Krita's Ten Brushes; the MagmaRita plugin owns the
+    # number keys itself now, so these are pruned to avoid double bindings.
+    "activate_preset_1", "activate_preset_2", "activate_preset_3",
+    "activate_preset_4", "activate_preset_5", "activate_preset_6",
+    "activate_preset_7", "activate_preset_8", "activate_preset_9",
+    "activate_preset_0",
+]
 
 # Ten Brushes slot order: slot 1..10 -> keys 1..0.
 # Slot 1 stays a spare because key 1 is bound to the dropper tool above.
@@ -111,6 +120,49 @@ PYTHON_PLUGINS = {
     "enable_magmarita_scrubby_zoom": "true",
     "enable_scrubby_zoom": "false",
 }
+
+
+DEFAULT_ZOOM_SENSITIVITY = 150.0
+
+
+def _default_config():
+    slots = []
+    for i in range(10):
+        key, preset = PRESET_SLOTS[i] if i < len(PRESET_SLOTS) else ("", "")
+        slots.append({"key": key, "preset": preset})
+    return {"version": 1, "slots": slots, "zoom_sensitivity": DEFAULT_ZOOM_SENSITIVITY}
+
+
+def config_path():
+    return os.path.join(resource_dir(), "magmarita.json")
+
+
+def save_config(cfg):
+    try:
+        with open(config_path(), "w", encoding="utf-8") as f:
+            json.dump(cfg, f, indent=2)
+        return True
+    except Exception:
+        return False
+
+
+def load_config():
+    """Load magmarita.json (creating it with defaults on first run)."""
+    default = _default_config()
+    cfg = None
+    try:
+        if os.path.exists(config_path()):
+            with open(config_path(), "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+    except Exception:
+        cfg = None
+    if not isinstance(cfg, dict):
+        save_config(default)
+        return default
+    cfg.setdefault("version", 1)
+    cfg.setdefault("slots", default["slots"])
+    cfg.setdefault("zoom_sensitivity", DEFAULT_ZOOM_SENSITIVITY)
+    return cfg
 
 
 def config_dir():

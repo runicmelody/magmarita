@@ -120,6 +120,36 @@ uninstall.py         uninstaller
 docs/KEYMAP.md       full keymap reference
 ~~~
 
+## Customising
+
+Everything is editable without touching code:
+
+* **Which preset each number key loads** - MagmaRita writes a config file:
+
+  ~~~
+  %APPDATA%\krita\magmarita.json        (Windows)
+  ~/.local/share/krita/magmarita.json   (Linux)
+  ~~~
+
+  Or open it from inside Krita: **Tools > Scripts > MagmaRita > Settings...**
+  (pick a key + a brush preset per slot, plus the scrubby-zoom sensitivity).
+
+* **Any other shortcut** (tools, view, layers) - remap them in
+  **Settings > Configure Krita > Keyboard Shortcuts**.
+
+Config file shape:
+
+~~~
+{
+  "version": 1,
+  "slots": [
+    {"key": "2", "preset": "a) Eraser Small"},
+    {"key": "3", "preset": "d) Ink-1 Precision"}
+  ],
+  "zoom_sensitivity": 150.0
+}
+~~~
+
 ## Contributing
 
 PRs welcome - especially extra Magma parity, Linux/macOS testing, and preset

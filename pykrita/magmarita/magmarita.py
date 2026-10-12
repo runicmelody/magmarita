@@ -1,21 +1,24 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """MagmaRita PyKrita plugin.
 
-* Adds a "MagmaRita" entry under Tools > Scripts (apply / restore keymap).
-* Provides the Magma tool-preset slots on the number keys (2-6) itself.
-* At startup it *applies* the Magma keymap to Krita's actions directly and
-  fills in anything Krita's shortcut file did not pick up, then writes a small
-  diagnostic log so the mapping can be verified.
+* Tools > Scripts > MagmaRita: Apply keymap / Restore / Settings / About.
+* Owns the Magma tool-preset slots on the number keys (configurable).
+* Applies the Magma keymap to Krita's actions at startup and fills in any
+  shortcut Krita did not pick up, so it does not depend on kritashortcutsrc.
+* Writes a diagnostic log to <LOCALAPPDATA>/magmarita-diag.log.
 """
 
 import os
+import re
 
 from krita import Extension, Krita
 from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QKeySequence
-from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QAction, QMessageBox
 
 from . import keymap
+
+DIGITS = "1234567890"
 
 
 def _log(msg):
@@ -35,108 +38,138 @@ class MagmaRitaExtension(Extension):
 
     def __init__(self, parent):
         super(MagmaRitaExtension, self).__init__(parent)
-        self._preset_for_action = {}
-        self._preset_actions = []
+        self.cfg = {}
+        self._slots = []
+        self._slot_actions = []
+        self._preset_by_index = {}
 
     def setup(self):
         pass
 
+    # ------------------------------------------------------------------
+    # Actions
+    # ------------------------------------------------------------------
     def createActions(self, window):
-        # --- Magma preset slots on the number keys ---
-        for key, preset_name in keymap.PRESET_SLOTS:
-            action_name = "magmarita_preset_" + key
-            act = window.createAction(
-                action_name, "Magma preset %s (%s)" % (key, preset_name))
-            act.setToolTip("Activate brush preset: %s" % preset_name)
-            act.setShortcut(QKeySequence(key))
-            act.triggered.connect(self._activate_preset)
-            self._preset_for_action[action_name] = preset_name
-            self._preset_actions.append((act, key))
+        self.window = window
+        self.cfg = keymap.load_config()
+        self._slots = list(self.cfg.get("slots", []))
 
-        # --- menu actions ---
+        for i in range(10):
+            act = window.createAction(
+                "magmarita_preset_%d" % (i + 1), "Magma preset slot %d" % (i + 1))
+            act.triggered.connect(self._activate_preset)
+            self._slot_actions.append(act)
+        self._apply_slots()
+
         self._act_apply = window.createAction("magmarita_apply", "Apply Magma keymap")
         self._act_apply.triggered.connect(self._on_apply)
-
-        self._act_restore = window.createAction(
-            "magmarita_restore", "Restore previous shortcuts")
+        self._act_restore = window.createAction("magmarita_restore", "Restore previous shortcuts")
         self._act_restore.triggered.connect(self._on_restore)
-
+        self._act_settings = window.createAction("magmarita_settings", "Settings...")
+        self._act_settings.triggered.connect(self._on_settings)
         self._act_about = window.createAction("magmarita_about", "About MagmaRita")
         self._act_about.triggered.connect(self._on_about)
 
-        # Apply/repair the keymap once everything has loaded.
         QTimer.singleShot(2500, self._bootstrap)
 
-    # ------------------------------------------------------------------
-    # Preset activation
-    # ------------------------------------------------------------------
+    def _apply_slots(self):
+        self._preset_by_index = {}
+        for i, act in enumerate(self._slot_actions):
+            slot = self._slots[i] if i < len(self._slots) else {}
+            preset = (slot or {}).get("preset", "") or ""
+            key = (slot or {}).get("key", "") or ""
+            if preset:
+                self._preset_by_index[i] = preset
+                act.setText("Magma preset %d (%s)" % (i + 1, preset))
+                act.setShortcut(QKeySequence(key) if key else QKeySequence())
+            else:
+                act.setText("Magma preset slot %d" % (i + 1))
+                act.setShortcut(QKeySequence())
+
     def _activate_preset(self):
         try:
             sender = self.sender()
-            name = self._preset_for_action.get(sender.objectName() if sender else None)
-            if not name:
+            if sender not in self._slot_actions:
+                return
+            index = self._slot_actions.index(sender)
+            preset_name = self._preset_by_index.get(index)
+            if not preset_name:
                 return
             window = Krita.instance().activeWindow()
             if not window or not window.views():
                 return
-            view = window.views()[0]
-            preset = Krita.instance().resources("preset").get(name)
+            preset = Krita.instance().resources("preset").get(preset_name)
             if not preset:
+                _log("[preset] not found: %s" % preset_name)
                 return
             act = Krita.instance().action("KritaShape/KisToolBrush")
             if act is not None:
                 act.trigger()
-            view.setCurrentBrushPreset(preset)
+            window.views()[0].setCurrentBrushPreset(preset)
         except Exception as exc:  # noqa: BLE001
-            _log("preset error: %r" % exc)
+            _log("[preset] error: %r" % exc)
 
     # ------------------------------------------------------------------
     # Startup bootstrap
     # ------------------------------------------------------------------
     def _bootstrap(self):
         try:
-            filled = []
-            changed_own = []
             K = Krita.instance()
+            filled = []
 
-            # 1) our own preset actions: enforce their shortcut (we keep
-            #    direct references, action() may not resolve plugin actions)
-            for act, key in self._preset_actions:
-                if act.shortcut().toString() != key:
-                    act.setShortcut(QKeySequence(key))
-                    changed_own.append(key)
+            # 1) preset slots (we hold direct references)
+            for act in self._slot_actions:
+                for i, a in enumerate(self._slot_actions):
+                    if a is act:
+                        slot = self._slots[i] if i < len(self._slots) else {}
+                        key = (slot or {}).get("key", "") or ""
+                        if (slot or {}).get("preset") and key:
+                            if a.shortcut().toString() != key:
+                                a.setShortcut(QKeySequence(key))
 
-            # 2) the bundled scrubby zoom action
-            act = K.action("scrubby_zoom_activate")
-            if act is not None and act.shortcut().isEmpty():
-                act.setShortcut(QKeySequence("Z"))
+            # 2) bundled scrubby zoom
+            a = K.action("scrubby_zoom_activate")
+            if a is not None and a.shortcut().isEmpty():
+                a.setShortcut(QKeySequence("Z"))
                 filled.append("scrubby_zoom_activate=Z")
 
-            # 3) core Magma shortcuts: only fill in what is missing
+            # 3) core Magma shortcuts: fill in only what is missing
             for name, keys in keymap.SHORTCUTS.items():
-                act = K.action(name)
-                if act is None:
-                    filled.append("[missing action] " + name)
+                a = K.action(name)
+                if a is None:
+                    filled.append("[missing] " + name)
                     continue
-                if not act.shortcut().isEmpty():
+                if not a.shortcut().isEmpty():
                     continue
                 seqs = _sequences(keys)
                 if len(seqs) > 1:
-                    act.setShortcuts(seqs)
+                    a.setShortcuts(seqs)
                 elif seqs:
-                    act.setShortcut(seqs[0])
+                    a.setShortcut(seqs[0])
                 filled.append(name + "=" + keys)
 
-            # --- diagnostic dump ---
+            # 4) diagnostics
             _log("=== MagmaRita %s bootstrap ===" % keymap.VERSION)
-            for key, _name in keymap.PRESET_SLOTS:
-                a = K.action("magmarita_preset_" + key)
-                _log("preset %s -> %s" % (key, a.shortcut().toString() if a else "(no action)"))
+            for i, act in enumerate(self._slot_actions):
+                _log("slot %d -> key %r preset %r" % (
+                    i + 1, act.shortcut().toString(),
+                    self._preset_by_index.get(i, "")))
             a = K.action("scrubby_zoom_activate")
             _log("scrubby_zoom_activate -> %s" % (a.shortcut().toString() if a else "(no action)"))
             for name in keymap.SHORTCUTS:
                 a = K.action(name)
                 _log("core %s -> %s" % (name, a.shortcut().toString() if a else "(no action)"))
+            # every action bound to a bare digit, or rotate/zoom/reset by name
+            try:
+                for a in self.window.qwindow().findChildren(QAction):
+                    s = a.shortcut().toString()
+                    text = a.text() or ""
+                    if not s:
+                        continue
+                    if (s in DIGITS) or re.search(r"(?i)rotat|zoom|reset", text):
+                        _log("BIND key=%r action=%r text=%r" % (s, a.objectName(), text))
+            except Exception as exc:
+                _log("dump error: %r" % exc)
             _log("filled now: %s" % (", ".join(filled) if filled else "(nothing)"))
         except Exception as exc:  # noqa: BLE001
             _log("bootstrap error: %r" % exc)
@@ -148,7 +181,7 @@ class MagmaRitaExtension(Extension):
         try:
             made = keymap.apply()
             self._bootstrap()
-            msg = "Magma keymap applied and switched on.\n\nRestart Krita if anything still looks off."
+            msg = "Magma keymap applied and switched on."
             if made:
                 msg += "\n\nBackups:\n" + "\n".join(made)
             QMessageBox.information(None, keymap.APP_NAME, msg)
@@ -159,16 +192,32 @@ class MagmaRitaExtension(Extension):
         try:
             restored = keymap.restore_latest()
             if restored:
-                QMessageBox.information(
-                    None, keymap.APP_NAME,
-                    "Restored:\n" + "\n".join(restored) + "\n\nRestart Krita.")
+                QMessageBox.information(None, keymap.APP_NAME,
+                                        "Restored:\n" + "\n".join(restored) + "\n\nRestart Krita.")
             else:
                 QMessageBox.information(None, keymap.APP_NAME, "No backup found.")
         except Exception as exc:  # noqa: BLE001
             QMessageBox.warning(None, keymap.APP_NAME, "Could not restore:\n%s" % exc)
 
+    def _on_settings(self):
+        try:
+            from .magmarita_settings import MagmaRitaSettings
+            dlg = MagmaRitaSettings(None)
+            exec_fn = getattr(dlg, "exec_", None) or dlg.exec
+            if exec_fn():
+                self.cfg = dlg.result_config()
+                keymap.save_config(self.cfg)
+                self._slots = list(self.cfg.get("slots", []))
+                self._apply_slots()
+                QMessageBox.information(
+                    None, keymap.APP_NAME,
+                    "Saved to:\n%s\n\nNew number-key shortcuts apply immediately." % keymap.config_path())
+        except Exception as exc:  # noqa: BLE001
+            _log("settings error: %r" % exc)
+            QMessageBox.warning(None, keymap.APP_NAME, "Settings failed:\n%s" % exc)
+
     def _on_about(self):
         QMessageBox.information(
             None, keymap.APP_NAME,
-            "%s %s\nMagma-style keybinds for Krita.\n\n%s"
-            % (keymap.APP_NAME, keymap.VERSION, keymap.HOMEPAGE))
+            "%s %s\nMagma-style keybinds for Krita.\n\n%s\nConfig:\n%s"
+            % (keymap.APP_NAME, keymap.VERSION, keymap.HOMEPAGE, keymap.config_path()))

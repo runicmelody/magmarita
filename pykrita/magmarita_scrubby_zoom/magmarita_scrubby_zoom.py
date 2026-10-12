@@ -30,6 +30,7 @@ The action id is kept as "scrubby_zoom_activate" so existing shortcuts keep
 working.
 """
 
+import json
 import os
 import re
 
@@ -55,6 +56,24 @@ def _clamp(scale):
         return max(MIN_SCALE, min(MAX_SCALE, float(scale)))
     except Exception:
         return 1.0
+
+
+def _diag(msg):
+    try:
+        base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
+        with open(os.path.join(base, "magmarita-diag.log"), "a", encoding="utf-8") as f:
+            f.write("[zoom] " + msg + "\n")
+    except Exception:
+        pass
+
+
+def _config_sensitivity():
+    try:
+        base = os.environ.get("APPDATA") or os.path.expanduser("~")
+        with open(os.path.join(base, "krita", "magmarita.json"), encoding="utf-8") as f:
+            return float(json.load(f).get("zoom_sensitivity", 150.0))
+    except Exception:
+        return 150.0
 
 
 class ZoomEventFilter(QObject):
@@ -119,6 +138,7 @@ class ScrubbyZoomExtension(Extension):
 
         # Absolute zoom (ZOOM_CONSTANT units, 1.0 == 100%) we track
         self.current_scale = 1.0
+        self.initial_scale = 1.0
 
         # Learning / remembering
         self.raw_to_scale_factor = {}   # dpi-key -> raw/percent factor
@@ -355,6 +375,7 @@ class ScrubbyZoomExtension(Extension):
         if not self._has_active_document() or self.zoom_mode_active:
             return
 
+        self.zoom_sensitivity = _config_sensitivity()
         self.zoom_mode_active = True
         self.is_dragging = False
         self.active_view = None
@@ -392,6 +413,10 @@ class ScrubbyZoomExtension(Extension):
         self.last_x = self.drag_start_x
 
         self.current_scale = self._current_scale(self.active_view)
+        self.initial_scale = self.current_scale
+        _diag("start anchor=%.5f ui=%s raw=%s" % (
+            self.current_scale, self._zoom_scale_from_ui(),
+            self._canvas_zoom_raw(self.active_view)))
 
         doc_id = self._get_document_id()
         if doc_id:
@@ -427,5 +452,12 @@ class ScrubbyZoomExtension(Extension):
             pass
 
     def end_drag(self):
+        try:
+            _diag("end start=%.5f final=%.5f ui=%s raw=%s" % (
+                getattr(self, "initial_scale", 0.0), self.current_scale,
+                self._zoom_scale_from_ui(),
+                self._canvas_zoom_raw(self.active_view) if self.active_view else None))
+        except Exception:
+            pass
         self.is_dragging = False
         self.active_view = None
