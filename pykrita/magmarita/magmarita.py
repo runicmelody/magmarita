@@ -104,6 +104,24 @@ class _DigitFilter(QObject):
         except Exception:
             pass
         try:
+            t = event.type()
+            if t == QEvent.KeyPress:
+                if event.key() == Qt.Key_Control:
+                    if not self.ext._ctrl_down:
+                        self.ext._ctrl_down = True
+                        self.ext._ctrl_other_key = False
+                elif self.ext._ctrl_down:
+                    self.ext._ctrl_other_key = True
+            elif t == QEvent.KeyRelease:
+                if event.key() == Qt.Key_Control:
+                    self.ext._ctrl_down = False
+                    self.ext._ctrl_other_key = False
+                    self.ext._end_line_assist()
+            elif t == QEvent.MouseButtonPress:
+                self.ext._maybe_start_line_assist()
+        except Exception:
+            pass
+        try:
             if event.type() != QEvent.KeyPress:
                 return False
             if event.modifiers() != Qt.NoModifier:
@@ -148,6 +166,9 @@ class MagmaRitaExtension(Extension):
         self._digit_filter = None
         self._filter_installed = False
         self._hooked = set()
+        self._ctrl_down = False
+        self._ctrl_other_key = False
+        self._line_active = False
         self._poller = None
         self._poll_last = None
         self._recent = deque(maxlen=14)
@@ -253,6 +274,40 @@ class MagmaRitaExtension(Extension):
             if _norm(candidate) == target:
                 return candidate
         return None
+
+    def _maybe_start_line_assist(self):
+        """Hold Ctrl and start a stroke -> use Krita's Line tool (straight line)."""
+        try:
+            if not self.cfg.get("line_assist", True):
+                return
+            if not self._ctrl_down or self._ctrl_other_key:
+                return
+            if QApplication.activeModalWidget() is not None:
+                return
+            if isinstance(QApplication.focusWidget(), _INPUT_WIDGETS):
+                return
+            if not self._has_open_document():
+                return
+            a = Krita.instance().action(self.cfg.get("line_tool", "KritaShape/KisToolLine"))
+            if a is not None:
+                a.trigger()
+                self._line_active = True
+                _log("[line] straight-line assist on")
+        except Exception as exc:
+            _log("[line] error: %r" % exc)
+
+    def _end_line_assist(self):
+        if not getattr(self, "_line_active", False):
+            return
+        self._line_active = False
+        try:
+            a = Krita.instance().action(
+                self.cfg.get("line_restore_tool", "KritaShape/KisToolBrush"))
+            if a is not None:
+                a.trigger()
+        except Exception:
+            pass
+        _log("[line] assist off")
 
     def _has_open_document(self):
         try:

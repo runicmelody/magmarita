@@ -3,6 +3,7 @@
 
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDialog,
     QDialogButtonBox,
@@ -82,6 +83,18 @@ class MagmaRitaSettings(QDialog):
         self.rotzoom.setDecimals(2)
         self.rotzoom.setValue(float(self.cfg.get("rotate_sensitivity", 0.5)))
         form.addRow("Rotate sensitivity (deg per px)", self.rotzoom)
+
+        self.rotmode = QComboBox()
+        self.rotmode.addItem("Around canvas centre", "center")
+        self.rotmode.addItem("Horizontal (scrubby)", "scrubby")
+        idx = self.rotmode.findData(str(self.cfg.get("rotate_mode", "center")))
+        if idx >= 0:
+            self.rotmode.setCurrentIndex(idx)
+        form.addRow("Rotate mode", self.rotmode)
+
+        self.lineassist = QCheckBox("Ctrl + draw = straight line")
+        self.lineassist.setChecked(bool(self.cfg.get("line_assist", True)))
+        form.addRow("Line assist", self.lineassist)
         outer.addLayout(form)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -99,4 +112,6 @@ class MagmaRitaSettings(QDialog):
                 "zoom_key": self.zoomkey.keySequence().toString() or "Z",
                 "rotate_key": self.rotatekey.keySequence().toString() or "R",
                 "zoom_sensitivity": float(self.zoom.value()),
-                "rotate_sensitivity": float(self.rotzoom.value())}
+                "rotate_sensitivity": float(self.rotzoom.value()),
+                "rotate_mode": self.rotmode.currentData() or "center",
+                "line_assist": bool(self.lineassist.isChecked())}

@@ -9,6 +9,7 @@ Bundled with MagmaRita: https://github.com/runicmelody/magmarita
 """
 
 import json
+import math
 import os
 import re
 
@@ -68,6 +69,10 @@ def _config_zoom_sensitivity():
         return float(_config("zoom_sensitivity", 150.0))
     except Exception:
         return 150.0
+
+
+def _config_rotate_mode():
+    return str(_config("rotate_mode", "center"))
 
 
 def _config_rotate_sensitivity():
@@ -141,6 +146,9 @@ class ScrubbyZoomExtension(Extension):
         self.current_scale = 1.0
         self.initial_scale = 1.0
         self.rotate_current = 0.0
+        self.rotate_mode = "center"
+        self.rotate_center = None
+        self.rotate_last_angle = None
 
         self.zoom_sensitivity = 150.0
         self.rotate_sensitivity = 0.5
@@ -266,6 +274,43 @@ class ScrubbyZoomExtension(Extension):
             pass
         return None
 
+    def _view_center_global(self):
+        """Global position of the canvas widget centre (the rotation pivot)."""
+        try:
+            w = QApplication.focusWidget()
+            if w is not None and w.width() > 1 and w.height() > 1:
+                return w.mapToGlobal(w.rect().center())
+        except Exception:
+            pass
+        return None
+
+    def _angle_from_center(self, pos, center):
+        try:
+            if center is None or pos is None:
+                return None
+            dx = float(pos.x() - center.x())
+            dy = float(pos.y() - center.y())
+            if (dx * dx + dy * dy) < 400.0:   # too close to the pivot: angle unstable
+                return None
+            return math.degrees(math.atan2(dy, dx))
+        except Exception:
+            return None
+
+    def _angle_delta(self, pos):
+        try:
+            angle = self._angle_from_center(pos, self.rotate_center)
+            if angle is None or self.rotate_last_angle is None:
+                return None
+            delta = angle - self.rotate_last_angle
+            while delta > 180.0:
+                delta -= 360.0
+            while delta < -180.0:
+                delta += 360.0
+            self.rotate_last_angle = angle
+            return delta
+        except Exception:
+            return None
+
     def _current_rotation(self, view):
         try:
             canvas = view.canvas() if view else None
@@ -328,8 +373,11 @@ class ScrubbyZoomExtension(Extension):
 
         if self.mode == "rotate":
             self.rotate_sensitivity = _config_rotate_sensitivity()
+            self.rotate_mode = _config_rotate_mode()
             self.rotate_current = self._current_rotation(self.active_view)
-            _diag("rotate start %.2f deg" % self.rotate_current)
+            self.rotate_center = self._view_center_global()
+            self.rotate_last_angle = self._angle_from_center(global_pos, self.rotate_center)
+            _diag("rotate start %.2f deg (%s)" % (self.rotate_current, self.rotate_mode))
         else:
             self.zoom_sensitivity = _config_zoom_sensitivity()
             self.current_scale = self._current_scale(self.active_view)
@@ -352,7 +400,12 @@ class ScrubbyZoomExtension(Extension):
             dx = max(-300, min(300, dx))
 
             if self.mode == "rotate":
-                self.rotate_current += dx * self.rotate_sensitivity
+                delta = None
+                if self.rotate_mode == "center" and self.rotate_center is not None:
+                    delta = self._angle_delta(global_pos)
+                if delta is None:
+                    delta = dx * self.rotate_sensitivity  # fallback: horizontal
+                self.rotate_current += delta
                 angle = self.rotate_current % 360.0
                 if angle > 180.0:
                     angle -= 360.0

@@ -14,7 +14,7 @@ import sys
 import time
 
 APP_NAME = "MagmaRita"
-VERSION = "0.8.0"
+VERSION = "0.9.0"
 HOMEPAGE = "https://github.com/runicmelody/magmarita"
 
 # ---------------------------------------------------------------------------
@@ -174,6 +174,10 @@ def _default_config():
         slots.append({"key": key, "preset": preset})
     return {"version": 1, "slots": slots, "zoom_key": "Z",
             "rotate_key": "R",
+            "rotate_mode": "center",
+            "line_assist": True,
+            "line_tool": "KritaShape/KisToolLine",
+            "line_restore_tool": "KritaShape/KisToolBrush",
             "zoom_sensitivity": DEFAULT_ZOOM_SENSITIVITY,
             "rotate_sensitivity": DEFAULT_ROTATE_SENSITIVITY}
 
@@ -208,6 +212,10 @@ def load_config():
     cfg.setdefault("slots", default["slots"])
     cfg.setdefault("zoom_key", "Z")
     cfg.setdefault("rotate_key", "R")
+    cfg.setdefault("rotate_mode", "center")
+    cfg.setdefault("line_assist", True)
+    cfg.setdefault("line_tool", "KritaShape/KisToolLine")
+    cfg.setdefault("line_restore_tool", "KritaShape/KisToolBrush")
     cfg.setdefault("zoom_sensitivity", DEFAULT_ZOOM_SENSITIVITY)
     cfg.setdefault("rotate_sensitivity", DEFAULT_ROTATE_SENSITIVITY)
     return cfg
