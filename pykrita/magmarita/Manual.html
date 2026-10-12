@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>MagmaRita</title></head>
+<body>
+<h1>MagmaRita</h1>
+<p>Magma-style keyboard shortcuts for <b>Krita</b>, for artists coming from
+<a href="https://magma.com">Magma</a>.</p>
+
+<h2>Keymap</h2>
+<table border="1" cellpadding="4" cellspacing="0">
+<tr><th>Key</th><th>Action</th></tr>
+<tr><td>1</td><td>Dropper (colour sampler)</td></tr>
+<tr><td>2</td><td>Small eraser</td></tr>
+<tr><td>3</td><td>Pen</td></tr>
+<tr><td>4</td><td>Basic brush</td></tr>
+<tr><td>5</td><td>Soft eraser</td></tr>
+<tr><td>6</td><td>Big eraser</td></tr>
+<tr><td>I</td><td>Eyedropper</td></tr>
+<tr><td>B</td><td>Brush</td></tr>
+<tr><td>E</td><td>Erase mode</td></tr>
+<tr><td>G</td><td>Paint bucket (fill)</td></tr>
+<tr><td>U</td><td>Rectangle</td></tr>
+<tr><td>M</td><td>Select</td></tr>
+<tr><td>L</td><td>Lasso</td></tr>
+<tr><td>V</td><td>Move</td></tr>
+<tr><td>Shift+T</td><td>Transform</td></tr>
+<tr><td>C</td><td>Crop</td></tr>
+<tr><td>Z</td><td>Scrubby zoom (hold and drag horizontally)</td></tr>
+<tr><td>= / -</td><td>Zoom in / out</td></tr>
+<tr><td>Home / End</td><td>Fit on screen / 100%</td></tr>
+<tr><td>Tab</td><td>Toggle UI</td></tr>
+<tr><td>H</td><td>Flip canvas</td></tr>
+<tr><td>X</td><td>Switch colours</td></tr>
+<tr><td>[ / ]</td><td>Brush size</td></tr>
+<tr><td>Ctrl+D</td><td>Deselect</td></tr>
+<tr><td>Shift+N</td><td>Add layer</td></tr>
+</table>
+
+<h2>Customising</h2>
+<p>Open <b>Tools &gt; Scripts &gt; MagmaRita &gt; Settings...</b> to choose the
+key and brush preset for each slot, plus the scrubby-zoom sensitivity.</p>
+<p>Settings are stored in <code>magmarita.json</code> in Krita's resource
+folder (<code>%APPDATA%\krita</code> on Windows, <code>~/.local/share/krita</code>
+on Linux).</p>
+
+<h2>Menu</h2>
+<ul>
+<li><b>Apply Magma keymap</b> - re-applies the shortcuts.</li>
+<li><b>Restore previous shortcuts</b> - restores the newest backup.</li>
+<li><b>Settings...</b> - configure the preset slots.</li>
+<li><b>About MagmaRita</b> - version and config path.</li>
+</ul>
+
+<h2>If a key does not work</h2>
+<ol>
+<li>Restart Krita after installing or changing shortcuts.</li>
+<li>Check the log at <code>%LOCALAPPDATA%\magmarita-diag.log</code>.</li>
+<li>The old "Scrubby Zoom" plugin is disabled automatically so it does not fight
+MagmaRita over the Z key.</li>
+</ol>
+
+<h2>License</h2>
+<p>GPL-3.0-or-later. Unofficial community project; not affiliated with Magma or
+the Krita team.</p>
+</body>
+</html>

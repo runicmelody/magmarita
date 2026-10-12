@@ -43,8 +43,19 @@ class _DigitFilter(QObject):
     def __init__(self, extension):
         super(_DigitFilter, self).__init__()
         self.ext = extension
+        self._key_count = 0
 
     def eventFilter(self, obj, event):
+        try:
+            if event.type() == QEvent.KeyPress and self._key_count < 400:
+                self._key_count += 1
+                fw = QApplication.focusWidget()
+                _log("[key] key=%s mods=%s focus=%s modal=%s" % (
+                    event.key(), int(event.modifiers()),
+                    type(fw).__name__ if fw else None,
+                    QApplication.activeModalWidget() is not None))
+        except Exception:
+            pass
         try:
             if event.type() != QEvent.KeyPress:
                 return False
@@ -92,6 +103,7 @@ class MagmaRitaExtension(Extension):
         self._preset_by_key = {}
         self._digit_filter = None
         self._filter_installed = False
+        self._hooked = set()
 
     def setup(self):
         pass
@@ -149,6 +161,16 @@ class MagmaRitaExtension(Extension):
             else:
                 act.setText("Magma preset slot %d" % (i + 1))
                 act.setShortcut(QKeySequence())
+
+    def _make_trigger_logger(self, name):
+        def _cb():
+            try:
+                a = Krita.instance().action(name)
+                _log("[trigger] %s shortcut=%s" % (
+                    name, a.shortcut().toString() if a else "?"))
+            except Exception:
+                _log("[trigger] %s" % name)
+        return _cb
 
     def _has_open_document(self):
         try:
@@ -245,6 +267,20 @@ class MagmaRitaExtension(Extension):
                         _log("BIND key=%r action=%r text=%r" % (s, a.objectName(), text))
             except Exception as exc:
                 _log("dump error: %r" % exc)
+            try:
+                for aname in ("rotate_canvas_left", "rotate_canvas_right",
+                              "rotate_canvas_reset", "reset_canvas_rotation",
+                              "zoom_to_100pct", "view_zoom_in", "view_zoom_out",
+                              "zoom_to_fit"):
+                    if aname in self._hooked:
+                        continue
+                    a = K.action(aname)
+                    if a is None:
+                        continue
+                    a.triggered.connect(self._make_trigger_logger(aname))
+                    self._hooked.add(aname)
+            except Exception as exc:
+                _log("hook error: %r" % exc)
             _log("filled now: %s" % (", ".join(filled) if filled else "(nothing)"))
         except Exception as exc:  # noqa: BLE001
             _log("bootstrap error: %r" % exc)
