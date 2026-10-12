@@ -72,6 +72,10 @@ SHORTCUTS = {
     "activate_preset_6": "6",
 }
 
+# Shortcut entries MagmaRita prunes from kritashortcutsrc: keys it used to
+# bind in an older version, or bindings it deliberately drops.
+REMOVE_SHORTCUTS = ["ZoomTool"]
+
 # Ten Brushes slot order: slot 1..10 -> keys 1..0.
 # Slot 1 stays a spare because key 1 is bound to the dropper tool above.
 PRESETS = [
@@ -166,7 +170,8 @@ def apply(do_backup=True):
     lines = _read(p).splitlines() if os.path.exists(p) else []
     if not any(l.strip() == "[Shortcuts]" for l in lines):
         lines.insert(0, "[Shortcuts]")
-    out = [l for l in lines if _key(l) not in SHORTCUTS]
+    out = [l for l in lines
+           if _key(l) not in SHORTCUTS and _key(l) not in REMOVE_SHORTCUTS]
     for k, v in SHORTCUTS.items():
         out.append(k + "=" + v)
     _write(p, "\n".join(out) + "\n")
