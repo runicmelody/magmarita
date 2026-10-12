@@ -169,16 +169,18 @@ def apply(do_backup=True):
         lines = lines[:1] + ins + lines[1:]
     else:
         lines = ["[General]"] + ins
+    enables = ["enable_tenbrushes=true", "enable_magmarita=true"]
     try:
         i = next(n for n, l in enumerate(lines) if l.strip() == "[python]")
         j = i + 1
         while j < len(lines) and not lines[j].startswith("["):
             j += 1
-        sec = [l for l in lines[i + 1:j] if not l.startswith("enable_tenbrushes=")]
-        sec.append("enable_tenbrushes=true")
+        keys = [e.split("=")[0] + "=" for e in enables]
+        sec = [l for l in lines[i + 1:j] if not any(l.startswith(k) for k in keys)]
+        sec.extend(enables)
         lines = lines[:i + 1] + sec + lines[j:]
     except StopIteration:
-        lines += ["[python]", "enable_tenbrushes=true"]
+        lines += ["[python]"] + enables
     _write(p, "\n".join(lines) + "\n")
 
     return made
