@@ -71,9 +71,9 @@ def _config_zoom_key():
     try:
         base = os.environ.get("APPDATA") or os.path.expanduser("~")
         with open(os.path.join(base, "krita", "magmarita.json"), encoding="utf-8") as f:
-            return json.load(f).get("zoom_key", "H") or "H"
+            return json.load(f).get("zoom_key", "Z") or "Z"
     except Exception:
-        return "H"
+        return "Z"
 
 
 def _config_sensitivity():

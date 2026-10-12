@@ -10,7 +10,7 @@
             <iconText>Horizontal Relative Zoom</iconText>
             <activationFlags>10000</activationFlags>
             <activationConditions>0</activationConditions>
-            <shortcut>h</shortcut>
+            <shortcut>z</shortcut>
             <isCheckable>false</isCheckable>
             <statusTip></statusTip>
         </Action>

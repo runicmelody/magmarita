@@ -34,7 +34,7 @@ Krita can do all of it, but the keys are different. MagmaRita closes that gap:
 | V | move | Move |
 | Shift+T | transform | Transform |
 | C | - | Crop |
-| H | zoom (hold + drag) | Scrubby Zoom *(bundled plugin)* |
+| Z | zoom (hold + drag) | Scrubby Zoom *(bundled plugin)* |
 | = / - | zoom in / out | Zoom in / out |
 | Home / End | fit / actual pixels | Fit to page / 100% |
 | H | flip horizontally | Mirror canvas |
