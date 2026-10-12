@@ -1,33 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""MagmaRita Scrubby Zoom - horizontal relative zoom for Krita.
+"""MagmaRita Scrubby - hold a key and drag to zoom or rotate the canvas.
 
-Hold the shortcut ("Z" in MagmaRita), then drag horizontally to zoom
-relative to the *current* zoom level.
+* Hold the zoom key (default Z) + drag horizontally  -> zoom, relative to the
+  current zoom, remembering the last zoom per document.
+* Hold the rotate key (default R) + drag horizontally -> rotate the canvas.
 
 Bundled with MagmaRita: https://github.com/runicmelody/magmarita
-
-Why this fork exists
---------------------
-Krita's libkis has two known quirks:
-
-* Canvas.zoomLevel() goes through zoomManager()->zoom() while
-  Canvas.setZoomLevel() goes through zoomController()->setZoom(
-  ZOOM_CONSTANT, value).  Depending on the Krita build and the document
-  the two can disagree by a document-dependent factor (KDE bug 437068),
-  which used to make "scrubby zoom" jump far out or in on the first drag.
-* The zoom percentage Krita shows in the status bar is what the user
-  actually sees, and it is always in the same units as setZoomLevel().
-
-So this fork:
-
-1. anchors on the real, on-screen zoom percentage (the zoom widget),
-2. *learns* the zoomLevel() <-> percent factor and caches it per DPI, so
-   the raw API stays usable as a fallback,
-3. remembers the last zoom per document, so re-activating always continues
-   from where you left off instead of resetting the view.
-
-The action id is kept as "scrubby_zoom_activate" so existing shortcuts keep
-working.
 """
 
 import json
@@ -35,7 +13,7 @@ import os
 import re
 
 from krita import Extension, Krita
-from PyQt5.QtCore import QEvent, QObject, QTimer, Qt
+from PyQt5.QtCore import QEvent, QObject, Qt, QTimer
 from PyQt5.QtGui import QCursor, QKeySequence, QPixmap
 from PyQt5.QtWidgets import (
     QApplication,
@@ -62,36 +40,50 @@ def _diag(msg):
     try:
         base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
         with open(os.path.join(base, "magmarita-diag.log"), "a", encoding="utf-8") as f:
-            f.write("[zoom] " + msg + "\n")
+            f.write("[scrubby] " + msg + "\n")
     except Exception:
         pass
 
 
-def _config_zoom_key():
+def _config(key, default):
     try:
         base = os.environ.get("APPDATA") or os.path.expanduser("~")
         with open(os.path.join(base, "krita", "magmarita.json"), encoding="utf-8") as f:
-            return json.load(f).get("zoom_key", "Z") or "Z"
+            value = json.load(f).get(key, default)
+            return default if value in (None, "") else value
     except Exception:
-        return "Z"
+        return default
 
 
-def _config_sensitivity():
+def _config_zoom_key():
+    return str(_config("zoom_key", "Z"))
+
+
+def _config_rotate_key():
+    return str(_config("rotate_key", "R"))
+
+
+def _config_zoom_sensitivity():
     try:
-        base = os.environ.get("APPDATA") or os.path.expanduser("~")
-        with open(os.path.join(base, "krita", "magmarita.json"), encoding="utf-8") as f:
-            return float(json.load(f).get("zoom_sensitivity", 150.0))
+        return float(_config("zoom_sensitivity", 150.0))
     except Exception:
         return 150.0
 
 
-class ZoomEventFilter(QObject):
+def _config_rotate_sensitivity():
+    try:
+        return float(_config("rotate_sensitivity", 0.5))
+    except Exception:
+        return 0.5
+
+
+class DragFilter(QObject):
     def __init__(self, extension):
-        super(ZoomEventFilter, self).__init__()
+        super(DragFilter, self).__init__()
         self.ext = extension
 
     def eventFilter(self, obj, event):
-        if not self.ext.zoom_mode_active:
+        if not self.ext.mode_active:
             return False
 
         t = event.type()
@@ -107,12 +99,12 @@ class ZoomEventFilter(QObject):
 
         elif t == QEvent.MouseMove:
             if self.ext.is_dragging:
-                self.ext.update_zoom(self.ext._event_global_pos(event))
+                self.ext.update_drag(self.ext._event_global_pos(event))
                 return True
 
         elif t == QEvent.TabletMove:
             if self.ext.is_dragging:
-                self.ext.update_zoom(self.ext._event_global_pos(event))
+                self.ext.update_drag(self.ext._event_global_pos(event))
                 return True
 
         elif t == QEvent.MouseButtonRelease:
@@ -127,7 +119,7 @@ class ZoomEventFilter(QObject):
 
         elif t == QEvent.KeyRelease:
             if not event.isAutoRepeat():
-                self.ext.deactivate_zoom_mode()
+                self.ext.deactivate()
                 return False
 
         return False
@@ -138,24 +130,23 @@ class ScrubbyZoomExtension(Extension):
     def __init__(self, parent):
         super(ScrubbyZoomExtension, self).__init__(parent)
 
-        self.zoom_mode_active = False
+        self.mode_active = False
+        self.mode = "zoom"
         self.is_dragging = False
 
         self.drag_start_x = 0
         self.last_x = 0
         self.active_view = None
 
-        # Absolute zoom (ZOOM_CONSTANT units, 1.0 == 100%) we track
         self.current_scale = 1.0
         self.initial_scale = 1.0
-
-        # Learning / remembering
-        self.raw_to_scale_factor = {}   # dpi-key -> raw/percent factor
-        self.document_zoom_cache = {}   # doc id -> last known scale
+        self.rotate_current = 0.0
 
         self.zoom_sensitivity = 150.0
+        self.rotate_sensitivity = 0.5
+        self.document_zoom_cache = {}
 
-        self.event_filter = ZoomEventFilter(self)
+        self.event_filter = DragFilter(self)
         self.filter_installed = False
 
         self.zoom_cursor = None
@@ -164,55 +155,62 @@ class ScrubbyZoomExtension(Extension):
     def setup(self):
         pass
 
-    def createActions(self, window):
-        action = window.createAction(
-            "scrubby_zoom_activate",
-            "Horizontal Relative Zoom",
-            "tools/scripts",
-        )
-        action.setToolTip("Hold and drag horizontally to zoom relative to the current zoom.")
-        action.setShortcut(QKeySequence(_config_zoom_key()))
-        action.triggered.connect(self.activate_zoom_mode)
-        # Re-assert after Krita has applied its shortcut scheme.
-        QTimer.singleShot(3000, lambda: action.setShortcut(QKeySequence(_config_zoom_key())))
-
     # ------------------------------------------------------------------
-    # Cursor
+    def createActions(self, window):
+        zoom = window.createAction(
+            "scrubby_zoom_activate", "Horizontal Relative Zoom", "tools/scripts")
+        zoom.setToolTip("Hold and drag horizontally to zoom relative to the current zoom.")
+        zoom.setShortcut(QKeySequence(_config_zoom_key()))
+        zoom.triggered.connect(self.activate_zoom_mode)
+
+        rot = window.createAction(
+            "scrubby_rotate_activate", "Drag Canvas Rotation", "tools/scripts")
+        rot.setToolTip("Hold and drag horizontally to rotate the canvas.")
+        rot.setShortcut(QKeySequence(_config_rotate_key()))
+        rot.triggered.connect(self.activate_rotate_mode)
+
+        QTimer.singleShot(3000, self._reassert_shortcuts)
+
+    def _reassert_shortcuts(self):
+        try:
+            for action_id, key in (("scrubby_zoom_activate", _config_zoom_key()),
+                                   ("scrubby_rotate_activate", _config_rotate_key())):
+                a = Krita.instance().action(action_id)
+                if a is not None:
+                    a.setShortcut(QKeySequence(key))
+        except Exception:
+            pass
+
     # ------------------------------------------------------------------
     def _get_cursor_icon_path(self):
         plugin_dir = os.path.dirname(os.path.realpath(__file__))
         icons_dir = os.path.join(plugin_dir, "Icons")
         available_sizes = [24, 32, 48, 64, 96]
-
         try:
             screen = QApplication.primaryScreen()
             dpr = screen.devicePixelRatio() if screen else 1.0
         except Exception:
             dpr = 1.0
-
-        target_physical_size = int(24 * dpr)
-        best_size = available_sizes[-1]
+        target = int(24 * dpr)
+        best = available_sizes[-1]
         for size in available_sizes:
-            if size >= target_physical_size:
-                best_size = size
+            if size >= target:
+                best = size
                 break
-
-        cursor_path = os.path.join(icons_dir, "zoomin" + str(best_size) + ".png")
-        if not os.path.exists(cursor_path):
+        path = os.path.join(icons_dir, "zoomin" + str(best) + ".png")
+        if not os.path.exists(path):
             for size in available_sizes:
-                fallback_path = os.path.join(icons_dir, "zoomin" + str(size) + ".png")
-                if os.path.exists(fallback_path):
-                    cursor_path = fallback_path
-                    best_size = size
+                alt = os.path.join(icons_dir, "zoomin" + str(size) + ".png")
+                if os.path.exists(alt):
+                    path, best = alt, size
                     break
-
-        return cursor_path, best_size, dpr
+        return path, best, dpr
 
     def _load_cursor(self):
         try:
-            cursor_path, icon_size, dpr = self._get_cursor_icon_path()
-            if os.path.exists(cursor_path):
-                pixmap = QPixmap(cursor_path)
+            path, icon_size, dpr = self._get_cursor_icon_path()
+            if os.path.exists(path):
+                pixmap = QPixmap(path)
                 if not pixmap.isNull():
                     pixmap.setDevicePixelRatio(dpr)
                     hotspot = int(icon_size / (4 * dpr))
@@ -222,8 +220,6 @@ class ScrubbyZoomExtension(Extension):
             pass
         self.zoom_cursor = QCursor(Qt.SizeHorCursor)
 
-    # ------------------------------------------------------------------
-    # Small helpers
     # ------------------------------------------------------------------
     def _has_active_document(self):
         try:
@@ -248,25 +244,9 @@ class ScrubbyZoomExtension(Extension):
             if not doc:
                 return None
             fname = doc.fileName()
-            if fname:
-                return fname
-            return "untitled_" + str(id(doc))
+            return fname if fname else "untitled_" + str(id(doc))
         except Exception:
             return None
-
-    def _doc_dpi(self, view):
-        try:
-            doc = view.document() if view else None
-            if doc:
-                dpi = float(doc.resolution())
-                if dpi > 0:
-                    return dpi
-        except Exception:
-            pass
-        return REFERENCE_DPI
-
-    def _dpi_key(self, view):
-        return round(self._doc_dpi(view), 3)
 
     def _event_global_pos(self, event):
         try:
@@ -277,65 +257,6 @@ class ScrubbyZoomExtension(Extension):
             except Exception:
                 return None
 
-    # ------------------------------------------------------------------
-    # Reading the real zoom (the fix)
-    # ------------------------------------------------------------------
-    def _percent_widgets(self):
-        """Widgets that may show the zoom percentage (strict, then status bar)."""
-        out = []
-        try:
-            win = Krita.instance().activeWindow()
-            qwin = win.qwindow() if win else None
-            if not qwin:
-                return out
-
-            named = []
-            for w in qwin.findChildren((QComboBox, QLineEdit, QToolButton, QLabel)):
-                try:
-                    obj = (w.objectName() or "").lower()
-                    acc = (w.accessibleName() or "").lower()
-                    if "zoom" in obj or "zoom" in acc:
-                        named.append(w)
-                except Exception:
-                    continue
-            if named:
-                return named
-
-            bar = qwin.findChild(QStatusBar)
-            if bar:
-                out = bar.findChildren((QComboBox, QLineEdit, QToolButton, QLabel))
-        except Exception:
-            pass
-        return out
-
-    @staticmethod
-    def _read_percent(widget):
-        try:
-            if isinstance(widget, QComboBox):
-                text = widget.currentText()
-            elif isinstance(widget, QLineEdit):
-                text = widget.text()
-            else:
-                text = widget.text()
-        except Exception:
-            return None
-        if not text:
-            return None
-        m = re.match(r"^\s*([\d.]+)\s*%\s*$", str(text))
-        if not m:
-            return None
-        try:
-            return float(m.group(1)) / 100.0
-        except Exception:
-            return None
-
-    def _zoom_scale_from_ui(self):
-        for w in self._percent_widgets():
-            val = self._read_percent(w)
-            if val is not None and MIN_SCALE <= val <= MAX_SCALE:
-                return val
-        return None
-
     def _canvas_zoom_raw(self, view):
         try:
             canvas = view.canvas() if view else None
@@ -345,13 +266,17 @@ class ScrubbyZoomExtension(Extension):
             pass
         return None
 
-    def _current_scale(self, view):
-        """Current zoom, in the units setZoomLevel() accepts (1.0 == 100%).
+    def _current_rotation(self, view):
+        try:
+            canvas = view.canvas() if view else None
+            if canvas:
+                return float(canvas.rotation())
+        except Exception:
+            pass
+        return 0.0
 
-        Canvas.zoomLevel() returns exactly the value previously passed to
-        setZoomLevel() (verified on Krita 5.3.4), so NO DPI correction is
-        applied.  Dividing by dpi/72 was what made the old version jump out.
-        """
+    def _current_scale(self, view):
+        """Current zoom in the units setZoomLevel() accepts (1.0 == 100%)."""
         raw = self._canvas_zoom_raw(view)
         if raw is not None and raw > 0:
             return _clamp(raw)
@@ -361,42 +286,39 @@ class ScrubbyZoomExtension(Extension):
         return 1.0
 
     # ------------------------------------------------------------------
-    # Mode lifecycle
-    # ------------------------------------------------------------------
-    def activate_zoom_mode(self):
-        if not self._has_active_document() or self.zoom_mode_active:
+    def _activate(self, mode):
+        if not self._has_active_document() or self.mode_active:
             return
-
-        self.zoom_sensitivity = _config_sensitivity()
-        self.zoom_mode_active = True
+        self.mode = mode
+        self.mode_active = True
         self.is_dragging = False
         self.active_view = None
-
         QApplication.setOverrideCursor(self.zoom_cursor)
-
         if not self.filter_installed:
             QApplication.instance().installEventFilter(self.event_filter)
             self.filter_installed = True
 
-    def deactivate_zoom_mode(self):
-        if not self.zoom_mode_active:
-            return
+    def activate_zoom_mode(self):
+        self._activate("zoom")
 
-        self.zoom_mode_active = False
+    def activate_rotate_mode(self):
+        self._activate("rotate")
+
+    def deactivate(self):
+        if not self.mode_active:
+            return
+        self.mode_active = False
         self.is_dragging = False
         self.active_view = None
-
         try:
             QApplication.restoreOverrideCursor()
         except Exception:
             pass
 
     # ------------------------------------------------------------------
-    # Drag + zoom
-    # ------------------------------------------------------------------
     def start_drag(self, global_pos):
         if not self._has_active_document() or global_pos is None:
-            self.deactivate_zoom_mode()
+            self.deactivate()
             return
 
         self.active_view = self._get_current_view()
@@ -404,49 +326,53 @@ class ScrubbyZoomExtension(Extension):
         self.drag_start_x = int(global_pos.x())
         self.last_x = self.drag_start_x
 
-        self.current_scale = self._current_scale(self.active_view)
-        self.initial_scale = self.current_scale
-        _diag("start anchor=%.5f" % self.current_scale)
+        if self.mode == "rotate":
+            self.rotate_sensitivity = _config_rotate_sensitivity()
+            self.rotate_current = self._current_rotation(self.active_view)
+            _diag("rotate start %.2f deg" % self.rotate_current)
+        else:
+            self.zoom_sensitivity = _config_zoom_sensitivity()
+            self.current_scale = self._current_scale(self.active_view)
+            self.initial_scale = self.current_scale
+            _diag("zoom start %.5f" % self.current_scale)
 
-        doc_id = self._get_document_id()
-        if doc_id:
-            self.document_zoom_cache[doc_id] = self.current_scale
-
-    def update_zoom(self, global_pos):
+    def update_drag(self, global_pos):
         if not self.is_dragging or global_pos is None:
             return
-
         view = self.active_view
         if not view:
             return
-
         try:
             canvas = view.canvas()
             if not canvas:
                 return
-
             x = int(global_pos.x())
-            delta_x = x - int(self.last_x)
+            dx = x - int(self.last_x)
             self.last_x = x
-            # Guard against a single pointer jump blowing the zoom up.
-            delta_x = max(-300, min(300, delta_x))
+            dx = max(-300, min(300, dx))
 
-            # Relative, exponential zoom from the *current* value.
-            factor = 2.0 ** (float(delta_x) / float(self.zoom_sensitivity))
-            self.current_scale = _clamp(float(self.current_scale) * factor)
-
-            canvas.setZoomLevel(self.current_scale)
-
-            doc_id = self._get_document_id()
-            if doc_id:
-                self.document_zoom_cache[doc_id] = self.current_scale
+            if self.mode == "rotate":
+                self.rotate_current += dx * self.rotate_sensitivity
+                angle = self.rotate_current % 360.0
+                if angle > 180.0:
+                    angle -= 360.0
+                canvas.setRotation(angle)
+            else:
+                factor = 2.0 ** (float(dx) / float(self.zoom_sensitivity))
+                self.current_scale = _clamp(float(self.current_scale) * factor)
+                canvas.setZoomLevel(self.current_scale)
+                doc_id = self._get_document_id()
+                if doc_id:
+                    self.document_zoom_cache[doc_id] = self.current_scale
         except Exception:
             pass
 
     def end_drag(self):
         try:
-            _diag("end start=%.5f final=%.5f" % (
-                getattr(self, "initial_scale", 0.0), self.current_scale))
+            if self.mode == "rotate":
+                _diag("rotate end %.2f deg" % self.rotate_current)
+            else:
+                _diag("zoom end start=%.5f final=%.5f" % (self.initial_scale, self.current_scale))
         except Exception:
             pass
         self.is_dragging = False

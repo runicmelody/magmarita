@@ -305,6 +305,7 @@ save_groups_as_images=none
 save_incremental_backup=F4
 save_incremental_version=Ctrl+Alt+S
 save_node_as_image=none
+scrubby_rotate_activate=R
 scrubby_zoom_activate=Z
 select_all=Ctrl+A
 select_opaque=none

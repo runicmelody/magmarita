@@ -21,6 +21,7 @@ used in "kritashortcutsrc".
 | Shift+T | Transform | KisToolTransform |
 | C | - | KisToolCrop |
 | Z | Scrubby zoom (hold + drag) | scrubby_zoom_activate |
+| R | Scrubby rotate (hold + drag) | scrubby_rotate_activate |
 
 ## View
 

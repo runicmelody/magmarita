@@ -62,6 +62,10 @@ class MagmaRitaSettings(QDialog):
             self.key_edits.append(ke)
             self.combos.append(cb)
 
+        self.rotatekey = QKeySequenceEdit()
+        self.rotatekey.setKeySequence(QKeySequence(self.cfg.get("rotate_key", "R") or "R"))
+        form.addRow("Rotate key", self.rotatekey)
+
         self.zoomkey = QKeySequenceEdit()
         self.zoomkey.setKeySequence(QKeySequence(self.cfg.get("zoom_key", "Z") or "Z"))
         form.addRow("Scrubby zoom key", self.zoomkey)
@@ -71,6 +75,13 @@ class MagmaRitaSettings(QDialog):
         self.zoom.setSingleStep(10.0)
         self.zoom.setValue(float(self.cfg.get("zoom_sensitivity", 150.0)))
         form.addRow("Zoom sensitivity (px per doubling)", self.zoom)
+
+        self.rotzoom = QDoubleSpinBox()
+        self.rotzoom.setRange(0.05, 10.0)
+        self.rotzoom.setSingleStep(0.1)
+        self.rotzoom.setDecimals(2)
+        self.rotzoom.setValue(float(self.cfg.get("rotate_sensitivity", 0.5)))
+        form.addRow("Rotate sensitivity (deg per px)", self.rotzoom)
         outer.addLayout(form)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -86,4 +97,6 @@ class MagmaRitaSettings(QDialog):
             slots.append({"key": key, "preset": preset})
         return {"version": 1, "slots": slots,
                 "zoom_key": self.zoomkey.keySequence().toString() or "Z",
-                "zoom_sensitivity": float(self.zoom.value())}
+                "rotate_key": self.rotatekey.keySequence().toString() or "R",
+                "zoom_sensitivity": float(self.zoom.value()),
+                "rotate_sensitivity": float(self.rotzoom.value())}

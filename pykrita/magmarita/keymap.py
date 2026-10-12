@@ -14,7 +14,7 @@ import sys
 import time
 
 APP_NAME = "MagmaRita"
-VERSION = "0.7.1"
+VERSION = "0.8.0"
 HOMEPAGE = "https://github.com/runicmelody/magmarita"
 
 # ---------------------------------------------------------------------------
@@ -37,7 +37,8 @@ SHORTCUTS = {
     "KisToolTransform": "Shift+T",                 # transform
     "KisToolCrop": "C",                            # crop
     # --- Scrubby zoom (bundled plugin, keeps its classic action id) ---
-    "scrubby_zoom_activate": "Z",                  # hold + drag horizontally
+    "scrubby_zoom_activate": "Z",                  # hold + drag to zoom
+    "scrubby_rotate_activate": "R",                # hold + drag to rotate
     # --- View ---
     "view_zoom_in": "=; Ctrl+=",
     "view_zoom_out": "-; Ctrl+-",
@@ -163,6 +164,7 @@ PYTHON_PLUGINS = {
 
 
 DEFAULT_ZOOM_SENSITIVITY = 150.0
+DEFAULT_ROTATE_SENSITIVITY = 0.5
 
 
 def _default_config():
@@ -171,7 +173,9 @@ def _default_config():
         key, preset = PRESET_SLOTS[i] if i < len(PRESET_SLOTS) else ("", "")
         slots.append({"key": key, "preset": preset})
     return {"version": 1, "slots": slots, "zoom_key": "Z",
-            "zoom_sensitivity": DEFAULT_ZOOM_SENSITIVITY}
+            "rotate_key": "R",
+            "zoom_sensitivity": DEFAULT_ZOOM_SENSITIVITY,
+            "rotate_sensitivity": DEFAULT_ROTATE_SENSITIVITY}
 
 
 def config_path():
@@ -203,7 +207,9 @@ def load_config():
     cfg.setdefault("version", 1)
     cfg.setdefault("slots", default["slots"])
     cfg.setdefault("zoom_key", "Z")
+    cfg.setdefault("rotate_key", "R")
     cfg.setdefault("zoom_sensitivity", DEFAULT_ZOOM_SENSITIVITY)
+    cfg.setdefault("rotate_sensitivity", DEFAULT_ROTATE_SENSITIVITY)
     return cfg
 
 
@@ -214,6 +220,7 @@ def load_config():
 CANVAS_INPUT_KEYS_TO_CLEAR = [
     "30", "31", "32", "33", "34", "35", "36", "37", "38", "39",  # 0-9
     "2b", "2d", "3d",                                            # + - =
+    "52",                                                        # R (rotate)
 ]
 
 

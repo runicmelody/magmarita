@@ -314,14 +314,19 @@ class MagmaRitaExtension(Extension):
                     if act.shortcut().toString() != key:
                         act.setShortcut(QKeySequence(key))
 
-            zkey = self.cfg.get("zoom_key", "H")
-            a = K.action("scrubby_zoom_activate")
-            if a is not None and a.shortcut().toString() != zkey:
-                a.setShortcut(QKeySequence(zkey))
-                filled.append("scrubby_zoom_activate=" + zkey)
+            for action_id, cfg_key, fallback in (
+                    ("scrubby_zoom_activate", "zoom_key", "Z"),
+                    ("scrubby_rotate_activate", "rotate_key", "R")):
+                key = self.cfg.get(cfg_key, fallback) or fallback
+                a = K.action(action_id)
+                if a is not None and a.shortcut().toString() != key:
+                    a.setShortcut(QKeySequence(key))
+                    filled.append(action_id + "=" + key)
 
             # Enforce the Magma keymap (deterministic on every start).
             for name, keys in keymap.SHORTCUTS.items():
+                if name.startswith("scrubby_"):
+                    continue  # driven from config below
                 a = K.action(name)
                 if a is None:
                     filled.append("[missing] " + name)
