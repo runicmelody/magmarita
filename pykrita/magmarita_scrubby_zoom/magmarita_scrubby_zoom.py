@@ -343,9 +343,6 @@ class ScrubbyZoomExtension(Extension):
         setZoomLevel() (verified on Krita 5.3.4), so NO DPI correction is
         applied.  Dividing by dpi/72 was what made the old version jump out.
         """
-        ui = self._zoom_scale_from_ui()
-        if ui is not None:
-            return _clamp(ui)
         raw = self._canvas_zoom_raw(view)
         if raw is not None and raw > 0:
             return _clamp(raw)
@@ -400,9 +397,7 @@ class ScrubbyZoomExtension(Extension):
 
         self.current_scale = self._current_scale(self.active_view)
         self.initial_scale = self.current_scale
-        _diag("start anchor=%.5f ui=%s raw=%s" % (
-            self.current_scale, self._zoom_scale_from_ui(),
-            self._canvas_zoom_raw(self.active_view)))
+        _diag("start anchor=%.5f" % self.current_scale)
 
         doc_id = self._get_document_id()
         if doc_id:
@@ -441,10 +436,8 @@ class ScrubbyZoomExtension(Extension):
 
     def end_drag(self):
         try:
-            _diag("end start=%.5f final=%.5f ui=%s raw=%s" % (
-                getattr(self, "initial_scale", 0.0), self.current_scale,
-                self._zoom_scale_from_ui(),
-                self._canvas_zoom_raw(self.active_view) if self.active_view else None))
+            _diag("end start=%.5f final=%.5f" % (
+                getattr(self, "initial_scale", 0.0), self.current_scale))
         except Exception:
             pass
         self.is_dragging = False

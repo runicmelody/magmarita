@@ -42,6 +42,7 @@ class MagmaRitaExtension(Extension):
         self._slots = []
         self._slot_actions = []
         self._preset_by_index = {}
+        self._preset_by_name = {}
 
     def setup(self):
         pass
@@ -75,12 +76,14 @@ class MagmaRitaExtension(Extension):
 
     def _apply_slots(self):
         self._preset_by_index = {}
+        self._preset_by_name = {}
         for i, act in enumerate(self._slot_actions):
             slot = self._slots[i] if i < len(self._slots) else {}
             preset = (slot or {}).get("preset", "") or ""
             key = (slot or {}).get("key", "") or ""
             if preset:
                 self._preset_by_index[i] = preset
+                self._preset_by_name[act.objectName()] = preset
                 act.setText("Magma preset %d (%s)" % (i + 1, preset))
                 act.setShortcut(QKeySequence(key) if key else QKeySequence())
             else:
@@ -90,11 +93,11 @@ class MagmaRitaExtension(Extension):
     def _activate_preset(self):
         try:
             sender = self.sender()
-            if sender not in self._slot_actions:
+            if sender is None:
                 return
-            index = self._slot_actions.index(sender)
-            preset_name = self._preset_by_index.get(index)
+            preset_name = self._preset_by_name.get(sender.objectName())
             if not preset_name:
+                _log("[preset] no mapping for %r" % sender.objectName())
                 return
             window = Krita.instance().activeWindow()
             if not window or not window.views():
@@ -103,7 +106,7 @@ class MagmaRitaExtension(Extension):
             if not preset:
                 _log("[preset] not found: %s" % preset_name)
                 return
-            _log("[preset] slot %d -> %s" % (index + 1, preset_name))
+            _log("[preset] ok: %s" % preset_name)
             act = Krita.instance().action("KritaShape/KisToolBrush")
             if act is not None:
                 act.trigger()

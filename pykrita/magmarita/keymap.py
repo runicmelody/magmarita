@@ -13,7 +13,7 @@ import sys
 import time
 
 APP_NAME = "MagmaRita"
-VERSION = "0.3.1"
+VERSION = "0.3.2"
 HOMEPAGE = "https://github.com/runicmelody/magmarita"
 
 # ---------------------------------------------------------------------------
@@ -226,9 +226,19 @@ def apply(do_backup=True):
     lines = _read(p).splitlines() if os.path.exists(p) else []
     if not any(l.strip() == "[Shortcuts]" for l in lines):
         lines.insert(0, "[Shortcuts]")
+    managed = dict(SHORTCUTS)
+    try:
+        for i, slot in enumerate(load_config().get("slots", [])):
+            key = (slot or {}).get("key", "") or ""
+            if (slot or {}).get("preset") and key:
+                managed["magmarita_preset_%d" % (i + 1)] = key
+    except Exception:
+        pass
+
     out = [l for l in lines
-           if _key(l) not in SHORTCUTS and _key(l) not in REMOVE_SHORTCUTS]
-    for k, v in SHORTCUTS.items():
+           if _key(l) not in managed and _key(l) not in REMOVE_SHORTCUTS
+           and not _key(l).startswith("magmarita_preset_")]
+    for k, v in managed.items():
         out.append(k + "=" + v)
     _write(p, "\n".join(out) + "\n")
 
