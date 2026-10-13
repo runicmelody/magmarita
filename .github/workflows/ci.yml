@@ -37,8 +37,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Qt runtime (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libgl1 libegl1
+      - name: Install PyQt5 (plugin tests)
+        run: python -m pip install --quiet PyQt5
       - name: Installer dry run (no Krita needed)
         run: python tests/test_installer.py
+      - name: Plugin module tests
+        run: python tests/test_plugin.py
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')

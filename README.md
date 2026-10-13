@@ -62,7 +62,11 @@ on-canvas key hints.
 
 ## Notes
 
-- Krita 5.2+ (tested on 5.3.4, Windows).
+- Krita 5.2+.
+- **Testing status:** developed and manually tested on **Windows, Krita 5.3.4**.
+  Linux and macOS are covered by **CI dry-run tests only** (installer logic, path
+  resolution, canvas-input patching) - they have **not been run inside real Krita**
+  yet. Treat them as untested.
 - To own the keys it needs, MagmaRita clears a few Krita defaults
   (show_color_history, show_common_colors, make_brush_color_lighter,
   decrease_opacity, show_minimal_shade_selector) and canvas-input keys

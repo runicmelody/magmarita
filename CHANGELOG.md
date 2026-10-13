@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.0 - 2026-10-13
+- Added plugin-module tests (tests/test_plugin.py): version guard, path
+  agreement between modules, opt-in diagnostics gate, small helpers - run in CI
+  with a stubbed Krita, no display needed.
+- README now states the testing status honestly: manual testing on Windows +
+  Krita 5.3.4; Linux/macOS only dry-run tested, never run in real Krita.
+
+
 ## 1.3.0 - 2026-10-13
 - **Version guard + safe mode**: outside the tested Krita range (5.2-5.3) or with
   "Safe mode" enabled, MagmaRita skips canvas-input patching and conflict clearing
