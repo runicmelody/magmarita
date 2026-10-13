@@ -30,13 +30,28 @@ FL = r"C:\Windows\Fonts\segoeuil.ttf"
 ICON_SIZES = (1024, 512, 256, 128, 64, 48, 32)
 
 
+def _normalise(im):
+    """Trim transparent borders and centre the mark on a square canvas.
+
+    Layout only - the artwork itself is untouched.
+    """
+    bbox = im.getbbox()
+    if bbox:
+        im = im.crop(bbox)
+    w, h = im.size
+    side = max(int(max(w, h) * 1.14), 64)     # ~7% margin all round
+    out = Image.new("RGBA", (side, side), (0, 0, 0, 0))
+    out.paste(im, ((side - w) // 2, (side - h) // 2), im)
+    return out
+
+
 def load_mark():
     if os.path.exists(SRC):
         print("using", SRC)
-        return Image.open(SRC).convert("RGBA")
+        return _normalise(Image.open(SRC).convert("RGBA"))
     fallback = os.path.join(OUT, "magmarita-icon-1024.png")
     print("! %s not found - using %s as placeholder" % (SRC, fallback))
-    return Image.open(fallback).convert("RGBA")
+    return _normalise(Image.open(fallback).convert("RGBA"))
 
 
 def scaled(mark, size):
