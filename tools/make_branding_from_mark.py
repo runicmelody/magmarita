@@ -120,7 +120,7 @@ def main():
     for name, w in tiles:
         p = os.path.join(OUT, name)
         if os.path.exists(p):
-            im = Image.open(p).convert("RGB")
+            im = Image.open(p).convert("RGBA")
             ims.append((name, im.resize((w, int(im.height * w / im.width)), Image.LANCZOS)))
     if ims:
         pad, lab = 22, 28
