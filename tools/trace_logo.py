@@ -259,7 +259,7 @@ def main():
     w, h, alpha_mask, layers, ax, bx = prepare(src)
     print("tracing %s -> %dx%d, %d tonal layers" % (os.path.basename(src), w, h, len(layers)))
 
-    colours = _boost([c for c, _m, _n in layers], 2.0)
+    colours = _boost([c for c, _m, _n in layers], 2.6)
     cols, stops = gradient_stops(colours)
     print("gradient: %s -> %s" % ("#%02X%02X%02X" % cols[0], "#%02X%02X%02X" % cols[-1]))
     print("axis: dark %.0f,%.0f -> light %.0f,%.0f" % (ax[0], ax[1], bx[0], bx[1]))

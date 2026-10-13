@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Rebuild every MagmaRita branding PNG from your own hand-drawn mark.
+"""Rebuild every MagmaRita branding PNG from your hand-drawn mark.
 
-1. Draw the mark in Krita on a SQUARE canvas (2048x2048 recommended), with a
-   transparent background, and export it as:
-        assets/branding/source/mark.png
-2. Run:
-        python tools/make_branding_from_mark.py
+1. Draw the mark in Krita (square canvas, transparent) and export it to
+   assets/branding/source/mark.png
+2. Run:  python tools/make_branding_from_mark.py
 
-Regenerates: all icon sizes, the horizontal logo, the wordmark, the itch.io
-cover (630x250) and the GitHub social preview (1280x640).
+Produces: icon sizes (never upscaled), horizontal logo, wordmark, itch cover
+(630x250), GitHub social (1280x640), a vector trace and a preview board.
 """
 
 import os
+import sys
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -20,105 +19,127 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "assets", "branding")
 SRC = os.path.join(OUT, "source", "mark.png")
 
-BLUE_TXT = (30, 145, 205)
-TEAL_TXT = (20, 170, 155)
-INK = (58, 74, 90)
-WHITE = (255, 255, 255)
+RED = (224, 43, 45)        # wordmark
+RED_DEEP = (176, 28, 32)   # second half, for a bit of depth
+INK = (20, 28, 38)         # tagline: near-black for contrast
+BG = (255, 255, 255)
 FB = r"C:\Windows\Fonts\segoeuib.ttf"
 FR = r"C:\Windows\Fonts\segoeui.ttf"
-FL = r"C:\Windows\Fonts\segoeuil.ttf"
 ICON_SIZES = (1024, 512, 256, 128, 64, 48, 32)
+TAGLINE = "Magma-style keybinds for Krita"
 
 
 def _normalise(im):
-    """Trim transparent borders and centre the mark on a square canvas.
-
-    Layout only - the artwork itself is untouched.
-    """
     bbox = im.getbbox()
     if bbox:
         im = im.crop(bbox)
     w, h = im.size
-    side = max(int(max(w, h) * 1.14), 64)     # ~7% margin all round
+    side = max(int(max(w, h) * 1.14), 64)
     out = Image.new("RGBA", (side, side), (0, 0, 0, 0))
     out.paste(im, ((side - w) // 2, (side - h) // 2), im)
     return out
 
 
 def load_mark():
-    if os.path.exists(SRC):
-        print("using", SRC)
-        return _normalise(Image.open(SRC).convert("RGBA"))
-    fallback = os.path.join(OUT, "magmarita-icon-1024.png")
-    print("! %s not found - using %s as placeholder" % (SRC, fallback))
-    return _normalise(Image.open(fallback).convert("RGBA"))
+    path = SRC if os.path.exists(SRC) else os.path.join(OUT, "magmarita-icon-218.png")
+    print("using", path)
+    return _normalise(Image.open(path).convert("RGBA"))
 
 
-def scaled(mark, size):
-    return mark.resize((size, size), Image.LANCZOS)
+def block_height(lines):
+    total = 0
+    for _t, f, _c, gap in lines:
+        a, d = f.getmetrics()
+        total += a + d + gap
+    return total
+
+
+def draw_block(d, x, y, lines):
+    for text, f, colour, gap in lines:
+        a, dd = f.getmetrics()
+        d.text((x, y), text, font=f, fill=colour + (255,), anchor="la")
+        y += a + dd + gap
+    return y
+
+
+def compose(mark, width, height, icon_px, title_px, sub_px, pad, tagline=True):
+    img = Image.new("RGBA", (width, height), BG + (255,))
+    icon_px = min(icon_px, mark.width)
+    icon = mark.resize((icon_px, icon_px), Image.LANCZOS)
+    img.paste(icon, (pad, (height - icon_px) // 2), icon)
+
+    f1 = ImageFont.truetype(FB, title_px)
+    parts = [("Magma", f1, RED), ("Rita", f1, RED_DEEP)]
+    lines = []
+    if tagline:
+        lines.append(("TITLE", f1, RED, int(title_px * 0.30)))
+        lines.append((TAGLINE, ImageFont.truetype(FR, sub_px), INK, 0))
+    else:
+        lines.append(("TITLE", f1, RED, 0))
+
+    x = pad + icon_px + int(pad * 0.7)
+    y = (height - block_height(lines)) // 2
+    d = ImageDraw.Draw(img)
+    for text, f, colour, gap in lines:
+        a, dd = f.getmetrics()
+        if text == "TITLE":
+            d.text((x, y), parts[0][0], font=f1, fill=RED + (255,), anchor="la")
+            d.text((x + f1.getlength(parts[0][0]), y), parts[1][0], font=f1,
+                   fill=RED_DEEP + (255,), anchor="la")
+        else:
+            d.text((x, y), text, font=f, fill=colour + (255,), anchor="la")
+        y += a + dd + gap
+    return img
 
 
 def main():
     mark = load_mark()
-    if not os.path.isdir(OUT):
-        os.makedirs(OUT)
+    os.makedirs(OUT, exist_ok=True)
 
     cap = mark.width
     sizes = sorted({s for s in ICON_SIZES if s <= cap} | {cap}, reverse=True)
-    print("source mark: %dpx -> generating icons %s (never upscaled)" % (cap, sizes))
+    print("source mark: %dpx -> icons %s (never upscaled)" % (cap, sizes))
     for size in sizes:
-        scaled(mark, size).save(os.path.join(OUT, "magmarita-icon-%d.png" % size))
-    scaled(mark, min(cap, 512)).save(os.path.join(OUT, "magmarita-icon.png"))
+        mark.resize((size, size), Image.LANCZOS).save(os.path.join(OUT, "magmarita-icon-%d.png" % size))
+    mark.resize((min(cap, 512), min(cap, 512)), Image.LANCZOS).save(os.path.join(OUT, "magmarita-icon.png"))
 
-    def wordmark(width, tagline=True):
-        ic = min(int(width * 0.20), mark.width)
-        icon = scaled(mark, ic)
-        f1 = ImageFont.truetype(FB, int(width * 0.115))
-        f2 = ImageFont.truetype(FL, int(width * 0.045))
-        tmp = ImageDraw.Draw(Image.new("RGBA", (10, 10)))
-        w1 = tmp.textlength("Magma", font=f1)
-        height = ic + int(width * 0.03)
-        img = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-        img.paste(icon, (int(width * 0.03), (height - ic) // 2), icon)
-        x = int(width * 0.03) + ic + int(width * 0.03)
-        y = (height - int(width * 0.115)) // 2 - (int(width * 0.03) if tagline else 0)
-        d = ImageDraw.Draw(img)
-        d.text((x, y), "Magma", font=f1, fill=BLUE_TXT + (255,))
-        d.text((x + w1, y), "Rita", font=f1, fill=TEAL_TXT + (255,))
-        if tagline:
-            d.text((x + int(width * 0.004), y + int(width * 0.125)),
-                   "Magma-style keybinds for Krita", font=f2, fill=INK + (255,))
-        return img
+    compose(mark, 1200, 372, 240, 128, 46, 42).save(os.path.join(OUT, "magmarita-logo-horizontal.png"))
+    compose(mark, 1200, 300, 240, 140, 40, 42, tagline=False).save(os.path.join(OUT, "magmarita-wordmark.png"))
+    compose(mark, 630, 250, 150, 54, 22, 26).save(os.path.join(OUT, "itch-cover-630x250.png"))
+    compose(mark, 1280, 640, 300, 96, 36, 64).save(os.path.join(OUT, "github-social-1280x640.png"))
+    print("composed logo + wordmark + cover + social")
 
-    wordmark(1200).save(os.path.join(OUT, "magmarita-logo-horizontal.png"))
-    wordmark(1200, tagline=False).save(os.path.join(OUT, "magmarita-wordmark.png"))
+    # preview board so the layout can be eyeballed in one image
+    tiles = [
+        ("magmarita-logo-horizontal.png", 900),
+        ("magmarita-wordmark.png", 900),
+        ("github-social-1280x640.png", 900),
+        ("itch-cover-630x250.png", 630),
+    ]
+    ims = []
+    for name, w in tiles:
+        p = os.path.join(OUT, name)
+        if os.path.exists(p):
+            im = Image.open(p).convert("RGB")
+            ims.append((name, im.resize((w, int(im.height * w / im.width)), Image.LANCZOS)))
+    if ims:
+        pad, lab = 24, 30
+        W = max(i.width for _n, i in ims) + pad * 2
+        H = sum(i.height + lab + pad for _n, i in ims) + pad
+        board = Image.new("RGB", (W, H), (232, 235, 238))
+        d = ImageDraw.Draw(board)
+        f = ImageFont.truetype(FB, 17)
+        y = pad
+        for name, im in ims:
+            board.paste(im, (pad, y))
+            d.text((pad, y + im.height + 4), name, font=f, fill=(70, 80, 92))
+            y += im.height + lab + pad
+        board.save(os.path.join(OUT, "preview-logos.png"))
+        print("wrote preview-logos.png", board.size)
 
-    cover = Image.new("RGBA", (630, 250), WHITE + (255,))
-    it = scaled(mark, min(150, mark.width))
-    cover.paste(it, (34, 50), it)
-    d = ImageDraw.Draw(cover)
-    d.text((210, 74), "MagmaRita", font=ImageFont.truetype(FB, 52), fill=BLUE_TXT + (255,))
-    d.text((212, 134), "Magma-style keybinds", font=ImageFont.truetype(FB, 22), fill=TEAL_TXT + (255,))
-    d.text((212, 162), "for Krita", font=ImageFont.truetype(FR, 22), fill=INK + (255,))
-    cover.save(os.path.join(OUT, "itch-cover-630x250.png"))
-
-    social = Image.new("RGBA", (1280, 640), WHITE + (255,))
-    sb = scaled(mark, min(340, mark.width))
-    social.paste(sb, (110, 150), sb)
-    d = ImageDraw.Draw(social)
-    d.text((520, 205), "MagmaRita", font=ImageFont.truetype(FB, 104), fill=BLUE_TXT + (255,))
-    d.text((524, 330), "Magma-style keybinds & palette", font=ImageFont.truetype(FB, 38), fill=TEAL_TXT + (255,))
-    d.text((524, 378), "for Krita", font=ImageFont.truetype(FR, 38), fill=INK + (255,))
-    d.text((524, 452), "github.com/runicmelody/magmarita", font=ImageFont.truetype(FL, 30), fill=INK + (200,))
-    social.save(os.path.join(OUT, "github-social-1280x640.png"))
-
-    print("done - rebuilt icons + logo + cover + social")
-
-    # keep a vector copy in sync
     try:
         import subprocess
-        import sys as _sys
-        subprocess.run([_sys.executable, os.path.join(ROOT, "tools", "trace_logo.py"), SRC], check=False)
+        subprocess.run([sys.executable, os.path.join(ROOT, "tools", "trace_logo.py"), SRC], check=False)
     except Exception as exc:
         print("vector trace skipped:", exc)
 
