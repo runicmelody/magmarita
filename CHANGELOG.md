@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.0 - 2026-10-13
+- Settings: **Enforce keymap** can be turned off - MagmaRita then only fills in
+  keys you have not bound yourself instead of re-applying everything on start.
+- Settings: **Diagnostics** log is now opt-in (off by default, nothing written).
+- Cross-platform: config and log paths now resolve correctly on Linux
+  (~/.config, ~/.local/share/krita) and macOS (Library/Preferences,
+  Library/Application Support/krita).
+- Docs: added docs/MANUAL-SETUP.md (pure-GUI recipe; promo/itch notes moved out
+  of the repo).
+
 ## 1.1.0 - 2026-10-13
 - New: **on-canvas key hints** - flashes the key/preset name (View.floatingMessage)
   when you switch presets, arm zoom/rotate or start the line assist. Toggle in

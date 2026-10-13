@@ -70,4 +70,7 @@ on-canvas key hints.
 - Troubleshooting: "%LOCALAPPDATA%\magmarita-diag.log".
 - FAQ (also written for search engines): [docs/FAQ.md](docs/FAQ.md)
 - Recording a demo GIF: [docs/GIF.md](docs/GIF.md)
+- Prefer to set it up by hand? [docs/MANUAL-SETUP.md](docs/MANUAL-SETUP.md)
+- Less forceful: turn off "Enforce keymap" in Settings and MagmaRita only fills
+  gaps, leaving your own bindings alone.
 - Credits: [CREDITS.md](CREDITS.md) - Licence: GPL-3.0-or-later ([LICENSE](LICENSE))

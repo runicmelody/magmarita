@@ -14,7 +14,7 @@ import sys
 import time
 
 APP_NAME = "MagmaRita"
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 HOMEPAGE = "https://github.com/runicmelody/magmarita"
 
 # ---------------------------------------------------------------------------
@@ -176,6 +176,8 @@ def _default_config():
             "rotate_mode": "center",
             "line_assist": True,
             "key_hints": True,
+            "enforce_keymap": True,
+            "diagnostics": False,
             "line_tool": "KritaShape/KisToolLine",
             "line_restore_tool": "KritaShape/KisToolBrush",
             "zoom_sensitivity": DEFAULT_ZOOM_SENSITIVITY,
@@ -215,6 +217,8 @@ def load_config():
     cfg.setdefault("rotate_mode", "center")
     cfg.setdefault("line_assist", True)
     cfg.setdefault("key_hints", True)
+    cfg.setdefault("enforce_keymap", True)
+    cfg.setdefault("diagnostics", False)
     cfg.setdefault("line_tool", "KritaShape/KisToolLine")
     cfg.setdefault("line_restore_tool", "KritaShape/KisToolBrush")
     cfg.setdefault("zoom_sensitivity", DEFAULT_ZOOM_SENSITIVITY)
@@ -287,6 +291,11 @@ def patch_canvas_input():
     if removed:
         _write(path, "\n".join(out) + "\n")
     return removed
+
+
+def log_path():
+    """Diagnostics log lives next to Krita's resources, on every platform."""
+    return os.path.join(resource_dir(), "magmarita-diag.log")
 
 
 def config_dir():

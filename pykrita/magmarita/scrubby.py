@@ -15,6 +15,7 @@ is copied from that project (which publishes no licence file).
 import json
 import math
 import os
+import sys
 
 from krita import Extension, Krita
 from PyQt5.QtCore import QEvent, QObject, Qt, QTimer
@@ -32,10 +33,22 @@ PIVOT_DEAD_ZONE = 20.0
 MAX_STEP_PIXELS = 300
 
 
+def _krita_dirs():
+    """(resource dir, config dir) per platform - same logic as keymap.py."""
+    home = os.path.expanduser("~")
+    if os.name == "nt":
+        return (os.path.join(os.environ.get("APPDATA", home), "krita"),
+                os.environ.get("LOCALAPPDATA", home))
+    if sys.platform == "darwin":
+        return (os.path.join(home, "Library", "Application Support", "krita"),
+                os.path.join(home, "Library", "Preferences"))
+    return (os.path.join(home, ".local", "share", "krita"),
+            os.path.join(home, ".config"))
+
+
 def _config():
     try:
-        base = os.environ.get("APPDATA") or os.path.expanduser("~")
-        with open(os.path.join(base, "krita", "magmarita.json"), encoding="utf-8") as handle:
+        with open(os.path.join(_krita_dirs()[0], "magmarita.json"), encoding="utf-8") as handle:
             return json.load(handle)
     except Exception:
         return {}
@@ -49,9 +62,10 @@ def _bound(value, low, high):
 
 
 def _trace(message):
+    if not _config().get("diagnostics", False):
+        return
     try:
-        base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
-        with open(os.path.join(base, "magmarita-diag.log"), "a", encoding="utf-8") as handle:
+        with open(os.path.join(_krita_dirs()[0], "magmarita-diag.log"), "a", encoding="utf-8") as handle:
             handle.write("[scrubby] " + message + "\n")
     except Exception:
         pass

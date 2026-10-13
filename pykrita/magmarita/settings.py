@@ -100,6 +100,14 @@ class MagmaRitaSettings(QDialog):
         self.hints.setChecked(bool(self.cfg.get("key_hints", True)))
         form.addRow("Key hints", self.hints)
 
+        self.enforce = QCheckBox("Re-apply the Magma keymap on every start")
+        self.enforce.setChecked(bool(self.cfg.get("enforce_keymap", True)))
+        form.addRow("Enforce keymap", self.enforce)
+
+        self.diag = QCheckBox("Write a diagnostics log (off by default)")
+        self.diag.setChecked(bool(self.cfg.get("diagnostics", False)))
+        form.addRow("Diagnostics", self.diag)
+
         self.linetool = QComboBox()
         self.linetool.addItem("Line (hold Ctrl, drag)", "KritaShape/KisToolLine")
         self.linetool.addItem("Polyline (chained clicks)", "KisToolPolyline")
@@ -128,4 +136,6 @@ class MagmaRitaSettings(QDialog):
                 "rotate_mode": self.rotmode.currentData() or "center",
                 "line_assist": bool(self.lineassist.isChecked()),
                 "line_tool": self.linetool.currentData() or "KritaShape/KisToolLine",
-                "key_hints": bool(self.hints.isChecked())}
+                "key_hints": bool(self.hints.isChecked()),
+                "enforce_keymap": bool(self.enforce.isChecked()),
+                "diagnostics": bool(self.diag.isChecked())}

@@ -49,10 +49,19 @@ def get_extension():
     return _EXTENSION
 
 
+_DIAGNOSTICS = False
+
+
+def set_diagnostics(enabled):
+    global _DIAGNOSTICS
+    _DIAGNOSTICS = bool(enabled)
+
+
 def _log(msg):
+    if not _DIAGNOSTICS:
+        return
     try:
-        path = os.path.join(keymap.config_dir(), "magmarita-diag.log")
-        with open(path, "a", encoding="utf-8") as f:
+        with open(keymap.log_path(), "a", encoding="utf-8") as f:
             f.write(msg + "\n")
     except Exception:
         pass
@@ -186,6 +195,7 @@ class MagmaRitaExtension(Extension):
     def createActions(self, window):
         self.window = window
         self.cfg = keymap.load_config()
+        set_diagnostics(self.cfg.get("diagnostics", False))
         self._slots = list(self.cfg.get("slots", []))
         self._slot_actions = []
 
@@ -218,6 +228,7 @@ class MagmaRitaExtension(Extension):
 
     def reload_config(self):
         self.cfg = keymap.load_config()
+        set_diagnostics(self.cfg.get("diagnostics", False))
         self._slots = list(self.cfg.get("slots", []))
         self._apply_slots()
 
