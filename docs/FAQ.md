@@ -37,8 +37,9 @@ MagmaRita unbinds them so the Magma keymap wins.
 **Scrubby zoom for Krita (hold a key and drag to zoom)?**
 MagmaRita bundles one: hold Z and drag horizontally. It zooms relative to the
 current zoom (no jumping) and remembers the zoom per document. Hold R and drag in
-a circle to rotate the canvas around its centre. (Idea credit:
-github.com/10zindraws/Scrubby-Zoom - independent implementation.)
+a circle to rotate the canvas around its centre. (Credit: scrubby zoom is not
+MagmaRita's own feature - it comes from Scrubby Zoom by 10zindraws
+(github.com/10zindraws/Scrubby-Zoom) and is only adapted here; see CREDITS.md.)
 
 **How do I rotate the canvas while holding a key in Krita?**
 Hold R and drag with MagmaRita, or use Krita's own Shift+Space+drag canvas input.

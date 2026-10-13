@@ -12,14 +12,24 @@ artwork - their brand colours were only used as reference.
 derived from the Krita wordmark. It is still an unofficial fan project, hence the
 disclaimer above.
 
-## Idea credit: Scrubby Zoom
+## Scrubby zoom is NOT our work
 
-- Upstream: <https://github.com/10zindraws/Scrubby-Zoom> (by 10zindraws)
-- Credit for: the "hold a key and drag horizontally to zoom" interaction.
-- The code in "pykrita/magmarita/scrubby.py" is an **independent clean-room
-  implementation** written for MagmaRita (it adds centre rotation, configurable
-  keys and per-document zoom memory). Upstream publishes no licence file, so no
-  code was copied - if you want to reuse *their* code, ask the author first.
+The **scrubby zoom** feature - hold a key and drag horizontally to zoom - comes
+from **Scrubby Zoom by 10zindraws**: <https://github.com/10zindraws/Scrubby-Zoom>.
+It is **not original to MagmaRita**; the MagmaRita author did not invent it. It is
+included here because it is what Magma users expect, and it has been **lightly
+edited/adapted** for this project.
+
+What MagmaRita changed:
+- added canvas rotation around the centre (hold R) and the Ctrl line assist hook,
+- made the keys and sensitivities configurable (Settings / magmarita.json),
+- added per-document zoom memory and tablet support,
+- rewrote the module ("pykrita/magmarita/scrubby.py") so no code is copied from
+  upstream, because that project publishes **no licence file** (default: all
+  rights reserved). If you want to reuse *their* code, ask its author first.
+
+If upstream later adds a licence and you prefer their code directly, reuse it
+under their terms and keep this credit visible.
 
 ## Other acknowledgements
 

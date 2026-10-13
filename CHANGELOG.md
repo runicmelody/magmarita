@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.1 - 2026-10-13
+- Credits clarified everywhere: scrubby zoom is **not** this project's work, it
+  comes from Scrubby Zoom by 10zindraws and is only adapted here.
+
+
 ## 1.5.0 - 2026-10-13
 - Flatpak and Snap Krita installs are detected automatically; env overrides
   MAGMARITA_CONFIG_DIR / MAGMARITA_RESOURCE_DIR for anything unusual.

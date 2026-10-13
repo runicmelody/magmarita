@@ -76,6 +76,8 @@ on-canvas key hints.
   version, resolved keys, cleared conflicts, preset check) - the fastest way to
   report a bug. Set "Diagnostics" in Settings to also write a log in Krita's
   resource folder.
+- **Scrubby zoom is not our work** - it comes from Scrubby Zoom by 10zindraws
+  and is only adapted here. See [CREDITS.md](CREDITS.md).
 - FAQ (also written for search engines): [docs/FAQ.md](docs/FAQ.md)
 - Recording a demo GIF: [docs/GIF.md](docs/GIF.md)
 - Prefer to set it up by hand? [docs/MANUAL-SETUP.md](docs/MANUAL-SETUP.md)

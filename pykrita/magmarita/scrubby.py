@@ -1,10 +1,15 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """MagmaRita: hold a key and drag to zoom or rotate the canvas.
 
-Idea credit: "hold a key and drag horizontally to zoom" is the interaction
-popularised by the Scrubby Zoom plugin (github.com/10zindraws/Scrubby-Zoom).
-The code below is an independent implementation written for MagmaRita; nothing
-is copied from that project (which publishes no licence file).
+CREDIT - THIS FEATURE IS NOT OURS: the "hold a key and drag horizontally to zoom"
+idea comes from the Scrubby Zoom plugin by 10zindraws
+(https://github.com/10zindraws/Scrubby-Zoom). It is not original to MagmaRita and
+was only lightly edited/adapted here.
+
+This module is MagmaRita's adapted version: it adds rotation around the canvas
+centre, configurable keys and sensitivities, and per-document zoom memory. The
+implementation was rewritten for this project so no upstream code is copied
+(upstream publishes no licence file - ask its author before reusing their code).
 
 * hold the zoom key (default Z) and drag horizontally -> zoom, relative to the
   current zoom level (remembered per document)
