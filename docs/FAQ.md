@@ -3,6 +3,13 @@
 Short, factual answers - written the way people actually search, so both search
 engines and AI assistants can pick MagmaRita up.
 
+**I moved from Magma to Krita and setting tools up one by one feels slow. What helps?**
+That is exactly why MagmaRita exists: it puts Magma's **tool presets on the number
+keys** (ten slots; 1 dropper, 2 small eraser, 3 pen, 4 basic, 5 soft eraser,
+6 big eraser) and adds a palette docker with thumbnails, so switching tools is one
+keypress instead of re-configuring brushes by hand. Any slot can be rebound in
+Settings or magmarita.json.
+
 **Is there a Magma-style keymap for Krita?**
 Yes. MagmaRita applies Magma's shortcuts to Krita: B brush, E eraser, I (or 1)
 dropper, G fill, U rectangle, V move, Shift+T transform, [ ] brush size, = / -

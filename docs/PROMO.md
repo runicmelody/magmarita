@@ -17,6 +17,11 @@ Links to reuse:
 
 ---
 
+## Record the GIF first
+
+See docs/GIF.md - a 9-second loop (presets 2-6, Z zoom, R rotate, Ctrl line) is
+the single most effective asset for these posts.
+
 ## 2) krita-artists.org
 
 **Category:** Plugins / Resources   **Tags:** krita, plugin, shortcuts, presets, zoom, workflow
