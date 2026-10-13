@@ -97,9 +97,9 @@ class MagmaRitaSettings(QDialog):
         form.addRow("Line assist", self.lineassist)
 
         self.linetool = QComboBox()
+        self.linetool.addItem("Line (hold Ctrl, drag)", "KritaShape/KisToolLine")
         self.linetool.addItem("Polyline (chained clicks)", "KisToolPolyline")
-        self.linetool.addItem("Line (click and drag)", "KritaShape/KisToolLine")
-        idx = self.linetool.findData(str(self.cfg.get("line_tool", "KisToolPolyline")))
+        idx = self.linetool.findData(str(self.cfg.get("line_tool", "KritaShape/KisToolLine")))
         if idx >= 0:
             self.linetool.setCurrentIndex(idx)
         form.addRow("Line tool", self.linetool)
@@ -123,4 +123,4 @@ class MagmaRitaSettings(QDialog):
                 "rotate_sensitivity": float(self.rotzoom.value()),
                 "rotate_mode": self.rotmode.currentData() or "center",
                 "line_assist": bool(self.lineassist.isChecked()),
-                "line_tool": self.linetool.currentData() or "KisToolPolyline"}
+                "line_tool": self.linetool.currentData() or "KritaShape/KisToolLine"}
