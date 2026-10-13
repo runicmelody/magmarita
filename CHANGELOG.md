@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.0 - 2026-10-13
+- First stable release.
+- Branding: hand-drawn logo, transparent banners in light + dark variants,
+  red wordmark with a dark-red tagline.
+- Everything from 0.x: palette docker, scrubby zoom (Z), drag-rotate around the
+  canvas centre (R), Ctrl line assist, Magma keymap with digit preset slots,
+  canvas-input conflict fixes, per-plugin manual.
+
+
 ## 0.9.4 - 2026-10-13
 - Line assist uses the normal **Line** tool again: holding Ctrl keeps the Line
   tool active and the line is committed on release; releasing Ctrl returns to
