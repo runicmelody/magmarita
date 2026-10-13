@@ -54,6 +54,20 @@ canvas-input profile (%APPDATA%\krita\input). The plugin adds the palette docker
 the Ctrl straight-line assist, automatic conflict clearing and one-command
 install.
 
+**Krita is installed via Flatpak or Snap - where is the config, and does MagmaRita work?**
+Flatpak and Snap keep Krita's files inside a sandbox:
+
+| Install | config (kritarc, kritashortcutsrc) | resources (input profiles, pykrita, magmarita.json) |
+|---|---|---|
+| distro package | ~/.config | ~/.local/share/krita |
+| Flatpak | ~/.var/app/org.kde.krita/config | ~/.var/app/org.kde.krita/data/krita |
+| Snap | ~/snap/krita/current/.config | ~/snap/krita/current/.local/share/krita |
+
+MagmaRita detects the sandbox automatically and writes to the right place; you can
+also force it with the MAGMARITA_CONFIG_DIR / MAGMARITA_RESOURCE_DIR environment
+variables. The path detection is covered by the CI dry-run tests; it has not yet
+been verified inside a real Flatpak or Snap Krita.
+
 **How do I change which brush each number key loads?**
 Tools > Scripts > MagmaRita > Settings..., or edit magmarita.json in Krita's
 resource folder (preset slots, zoom/rotate keys and sensitivity, line assist).
