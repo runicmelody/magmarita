@@ -75,6 +75,10 @@ def main():
     ap = argparse.ArgumentParser(description="MagmaRita installer")
     ap.add_argument("--no-plugin", action="store_true", help="only write the keymap")
     ap.add_argument("--uninstall", action="store_true", help="remove plugin, restore config")
+    ap.add_argument("--no-backup", action="store_true",
+                    help="do not back up Krita's config before changing it")
+    ap.add_argument("--backup-dir", default="",
+                    help="also copy the config backups into this folder")
     args = ap.parse_args()
 
     km = load_keymap()
@@ -87,10 +91,17 @@ def main():
     print("resource dir: %s" % km.resource_dir())
     if not args.no_plugin:
         install_plugin(km)
-    made = km.apply()
+    made = km.apply(do_backup=not args.no_backup)
     print("+ keymap written to:\n    %s\n    %s" % (km.shortcuts_path(), km.kritarc_path()))
     for m in made:
         print("+ backup: %s" % m)
+    if args.backup_dir and made:
+        os.makedirs(args.backup_dir, exist_ok=True)
+        for m in made:
+            shutil.copy2(m, os.path.join(args.backup_dir, os.path.basename(m)))
+        print("+ backups copied to %s" % args.backup_dir)
+    if not made and not args.no_backup:
+        print("! nothing backed up (config files missing?)")
     print("\nDone. Start Krita, then try Z (zoom), R (rotate) and 2-6 (presets).")
 
 

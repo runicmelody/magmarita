@@ -1,432 +1,285 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""MagmaRita Scrubby - hold a key and drag to zoom or rotate the canvas.
+"""MagmaRita: hold a key and drag to zoom or rotate the canvas.
 
-* Hold the zoom key (default Z) + drag horizontally  -> zoom, relative to the
-  current zoom, remembering the last zoom per document.
-* Hold the rotate key (default R) + drag horizontally -> rotate the canvas.
+Idea credit: "hold a key and drag horizontally to zoom" is the interaction
+popularised by the Scrubby Zoom plugin (github.com/10zindraws/Scrubby-Zoom).
+The code below is an independent implementation written for MagmaRita; nothing
+is copied from that project (which publishes no licence file).
 
-Bundled with MagmaRita: https://github.com/runicmelody/magmarita
+* hold the zoom key (default Z) and drag horizontally -> zoom, relative to the
+  current zoom level (remembered per document)
+* hold the rotate key (default R) and drag in a circle -> rotate the canvas
+  around its centre
 """
 
 import json
 import math
 import os
-import re
 
 from krita import Extension, Krita
 from PyQt5.QtCore import QEvent, QObject, Qt, QTimer
 from PyQt5.QtGui import QCursor, QKeySequence, QPixmap
-from PyQt5.QtWidgets import (
-    QApplication,
-    QComboBox,
-    QLabel,
-    QLineEdit,
-    QStatusBar,
-    QToolButton,
-)
+from PyQt5.QtWidgets import QApplication
 
-REFERENCE_DPI = 72.0
-MIN_SCALE = 0.01     # 1%
-MAX_SCALE = 256.0    # 25600%
+ZOOM_ACTION = "scrubby_zoom_activate"
+ROTATE_ACTION = "scrubby_rotate_activate"
+
+MIN_ZOOM = 0.01
+MAX_ZOOM = 256.0
+DEFAULT_PIXELS_PER_STEP = 150.0
+DEFAULT_DEGREES_PER_PIXEL = 0.5
+PIVOT_DEAD_ZONE = 20.0
+MAX_STEP_PIXELS = 300
 
 
-def _clamp(scale):
+def _config():
     try:
-        return max(MIN_SCALE, min(MAX_SCALE, float(scale)))
+        base = os.environ.get("APPDATA") or os.path.expanduser("~")
+        with open(os.path.join(base, "krita", "magmarita.json"), encoding="utf-8") as handle:
+            return json.load(handle)
     except Exception:
-        return 1.0
+        return {}
 
 
-def _diag(msg):
+def _bound(value, low, high):
+    try:
+        return max(low, min(high, float(value)))
+    except Exception:
+        return low
+
+
+def _trace(message):
     try:
         base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
-        with open(os.path.join(base, "magmarita-diag.log"), "a", encoding="utf-8") as f:
-            f.write("[scrubby] " + msg + "\n")
+        with open(os.path.join(base, "magmarita-diag.log"), "a", encoding="utf-8") as handle:
+            handle.write("[scrubby] " + message + "\n")
     except Exception:
         pass
 
 
-def _config(key, default):
-    try:
-        base = os.environ.get("APPDATA") or os.path.expanduser("~")
-        with open(os.path.join(base, "krita", "magmarita.json"), encoding="utf-8") as f:
-            value = json.load(f).get(key, default)
-            return default if value in (None, "") else value
-    except Exception:
-        return default
+class _DragWatch(QObject):
+    """App-wide watcher, active only while a scrubby key is held down."""
 
+    def __init__(self, owner):
+        super(_DragWatch, self).__init__()
+        self.owner = owner
 
-def _config_zoom_key():
-    return str(_config("zoom_key", "Z"))
-
-
-def _config_rotate_key():
-    return str(_config("rotate_key", "R"))
-
-
-def _config_zoom_sensitivity():
-    try:
-        return float(_config("zoom_sensitivity", 150.0))
-    except Exception:
-        return 150.0
-
-
-def _config_rotate_mode():
-    return str(_config("rotate_mode", "center"))
-
-
-def _config_rotate_sensitivity():
-    try:
-        return float(_config("rotate_sensitivity", 0.5))
-    except Exception:
-        return 0.5
-
-
-class DragFilter(QObject):
-    def __init__(self, extension):
-        super(DragFilter, self).__init__()
-        self.ext = extension
-
-    def eventFilter(self, obj, event):
-        if not self.ext.mode_active:
+    def eventFilter(self, widget, event):
+        if not self.owner.armed:
             return False
-
-        t = event.type()
-
-        if t == QEvent.MouseButtonPress:
-            if event.button() == Qt.LeftButton:
-                self.ext.start_drag(self.ext._event_global_pos(event))
-                return True
-
-        elif t == QEvent.TabletPress:
-            self.ext.start_drag(self.ext._event_global_pos(event))
+        kind = event.type()
+        if kind == QEvent.MouseButtonPress and event.button() == Qt.LeftButton:
+            self.owner.press(self._pos(event))
             return True
-
-        elif t == QEvent.MouseMove:
-            if self.ext.is_dragging:
-                self.ext.update_drag(self.ext._event_global_pos(event))
-                return True
-
-        elif t == QEvent.TabletMove:
-            if self.ext.is_dragging:
-                self.ext.update_drag(self.ext._event_global_pos(event))
-                return True
-
-        elif t == QEvent.MouseButtonRelease:
-            if event.button() == Qt.LeftButton and self.ext.is_dragging:
-                self.ext.end_drag()
-                return True
-
-        elif t == QEvent.TabletRelease:
-            if self.ext.is_dragging:
-                self.ext.end_drag()
-                return True
-
-        elif t == QEvent.KeyRelease:
-            if not event.isAutoRepeat():
-                self.ext.deactivate()
-                return False
-
+        if kind == QEvent.TabletPress:
+            self.owner.press(self._pos(event))
+            return True
+        if kind in (QEvent.MouseMove, QEvent.TabletMove) and self.owner.dragging:
+            self.owner.move(self._pos(event))
+            return True
+        if kind == QEvent.MouseButtonRelease and self.owner.dragging:
+            self.owner.release()
+            return True
+        if kind == QEvent.TabletRelease and self.owner.dragging:
+            self.owner.release()
+            return True
+        if kind == QEvent.KeyRelease and not event.isAutoRepeat():
+            self.owner.disarm()
         return False
+
+    @staticmethod
+    def _pos(event):
+        for attr in ("globalPos", "globalPosF"):
+            try:
+                value = getattr(event, attr)()
+                return value.toPoint() if hasattr(value, "toPoint") else value
+            except Exception:
+                continue
+        return None
 
 
 class ScrubbyZoomExtension(Extension):
 
     def __init__(self, parent):
         super(ScrubbyZoomExtension, self).__init__(parent)
-
-        self.mode_active = False
-        self.mode = "zoom"
-        self.is_dragging = False
-
-        self.drag_start_x = 0
+        self.settings = _config()
+        self.armed = False
+        self.dragging = False
+        self.task = "zoom"
         self.last_x = 0
-        self.active_view = None
-
-        self.current_scale = 1.0
-        self.initial_scale = 1.0
-        self.rotate_current = 0.0
-        self.rotate_mode = "center"
-        self.rotate_center = None
-        self.rotate_last_angle = None
-
-        self.zoom_sensitivity = 150.0
-        self.rotate_sensitivity = 0.5
-        self.document_zoom_cache = {}
-
-        self.event_filter = DragFilter(self)
-        self.filter_installed = False
-
-        self.zoom_cursor = None
-        self._load_cursor()
+        self.zoom = 1.0
+        self.angle = 0.0
+        self.pivot = None
+        self.pivot_angle = None
+        self.zoom_memory = {}
+        self.watch = _DragWatch(self)
+        self.watching = False
+        self.pointer = self._pointer()
 
     def setup(self):
         pass
 
     # ------------------------------------------------------------------
     def createActions(self, window):
-        zoom = window.createAction(
-            "scrubby_zoom_activate", "Horizontal Relative Zoom", "tools/scripts")
-        zoom.setToolTip("Hold and drag horizontally to zoom relative to the current zoom.")
-        zoom.setShortcut(QKeySequence(_config_zoom_key()))
-        zoom.triggered.connect(self.activate_zoom_mode)
+        for action_id, text, tip, key in (
+            (ZOOM_ACTION, "Horizontal Relative Zoom",
+             "Hold and drag horizontally to zoom relative to the current zoom.",
+             str(self.settings.get("zoom_key", "Z") or "Z")),
+            (ROTATE_ACTION, "Drag Canvas Rotation",
+             "Hold and drag in a circle to rotate the canvas around its centre.",
+             str(self.settings.get("rotate_key", "R") or "R")),
+        ):
+            action = window.createAction(action_id, text, "tools/scripts")
+            action.setToolTip(tip)
+            action.setShortcut(QKeySequence(key))
+            action.triggered.connect(
+                lambda _checked=False, t=("rotate" if action_id == ROTATE_ACTION else "zoom"):
+                self.arm(t))
+        QTimer.singleShot(3000, self.reassert_shortcuts)
 
-        rot = window.createAction(
-            "scrubby_rotate_activate", "Drag Canvas Rotation", "tools/scripts")
-        rot.setToolTip("Hold and drag horizontally to rotate the canvas.")
-        rot.setShortcut(QKeySequence(_config_rotate_key()))
-        rot.triggered.connect(self.activate_rotate_mode)
-
-        QTimer.singleShot(3000, self._reassert_shortcuts)
-
-    def _reassert_shortcuts(self):
-        try:
-            for action_id, key in (("scrubby_zoom_activate", _config_zoom_key()),
-                                   ("scrubby_rotate_activate", _config_rotate_key())):
-                a = Krita.instance().action(action_id)
-                if a is not None:
-                    a.setShortcut(QKeySequence(key))
-        except Exception:
-            pass
-
-    # ------------------------------------------------------------------
-    def _get_cursor_icon_path(self):
-        plugin_dir = os.path.dirname(os.path.realpath(__file__))
-        icons_dir = os.path.join(plugin_dir, "Icons")
-        available_sizes = [24, 32, 48, 64, 96]
-        try:
-            screen = QApplication.primaryScreen()
-            dpr = screen.devicePixelRatio() if screen else 1.0
-        except Exception:
-            dpr = 1.0
-        target = int(24 * dpr)
-        best = available_sizes[-1]
-        for size in available_sizes:
-            if size >= target:
-                best = size
-                break
-        path = os.path.join(icons_dir, "zoomin" + str(best) + ".png")
-        if not os.path.exists(path):
-            for size in available_sizes:
-                alt = os.path.join(icons_dir, "zoomin" + str(size) + ".png")
-                if os.path.exists(alt):
-                    path, best = alt, size
-                    break
-        return path, best, dpr
-
-    def _load_cursor(self):
-        try:
-            path, icon_size, dpr = self._get_cursor_icon_path()
-            if os.path.exists(path):
-                pixmap = QPixmap(path)
-                if not pixmap.isNull():
-                    pixmap.setDevicePixelRatio(dpr)
-                    hotspot = int(icon_size / (4 * dpr))
-                    self.zoom_cursor = QCursor(pixmap, hotspot, hotspot)
-                    return
-        except Exception:
-            pass
-        self.zoom_cursor = QCursor(Qt.SizeHorCursor)
-
-    # ------------------------------------------------------------------
-    def _has_active_document(self):
-        try:
-            app = Krita.instance()
-            return bool(app and app.activeWindow() and app.activeWindow().activeView()
-                        and app.activeDocument())
-        except Exception:
-            return False
-
-    def _get_current_view(self):
-        try:
-            app = Krita.instance()
-            if app and app.activeWindow():
-                return app.activeWindow().activeView()
-        except Exception:
-            pass
-        return None
-
-    def _get_document_id(self):
-        try:
-            doc = Krita.instance().activeDocument()
-            if not doc:
-                return None
-            fname = doc.fileName()
-            return fname if fname else "untitled_" + str(id(doc))
-        except Exception:
-            return None
-
-    def _event_global_pos(self, event):
-        try:
-            return event.globalPos()
-        except Exception:
+    def reassert_shortcuts(self):
+        for action_id, name in ((ZOOM_ACTION, "zoom_key"), (ROTATE_ACTION, "rotate_key")):
+            key = str(self.settings.get(name, "Z" if name == "zoom_key" else "R"))
             try:
-                return event.globalPosF().toPoint()
+                action = Krita.instance().action(action_id)
+                if action is not None:
+                    action.setShortcut(QKeySequence(key))
             except Exception:
-                return None
+                pass
 
-    def _canvas_zoom_raw(self, view):
+    def _pointer(self):
         try:
-            canvas = view.canvas() if view else None
-            if canvas:
-                return float(canvas.zoomLevel())
+            folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Icons")
+            for size in (48, 32, 64, 24, 96):
+                path = os.path.join(folder, "zoomin%d.png" % size)
+                if os.path.exists(path):
+                    pixmap = QPixmap(path)
+                    if not pixmap.isNull():
+                        return QCursor(pixmap, 8, 8)
         except Exception:
             pass
-        return None
-
-    def _view_center_global(self):
-        """Global position of the canvas widget centre (the rotation pivot)."""
-        try:
-            w = QApplication.focusWidget()
-            if w is not None and w.width() > 1 and w.height() > 1:
-                return w.mapToGlobal(w.rect().center())
-        except Exception:
-            pass
-        return None
-
-    def _angle_from_center(self, pos, center):
-        try:
-            if center is None or pos is None:
-                return None
-            dx = float(pos.x() - center.x())
-            dy = float(pos.y() - center.y())
-            if (dx * dx + dy * dy) < 400.0:   # too close to the pivot: angle unstable
-                return None
-            return math.degrees(math.atan2(dy, dx))
-        except Exception:
-            return None
-
-    def _angle_delta(self, pos):
-        try:
-            angle = self._angle_from_center(pos, self.rotate_center)
-            if angle is None or self.rotate_last_angle is None:
-                return None
-            delta = angle - self.rotate_last_angle
-            while delta > 180.0:
-                delta -= 360.0
-            while delta < -180.0:
-                delta += 360.0
-            self.rotate_last_angle = angle
-            return delta
-        except Exception:
-            return None
-
-    def _current_rotation(self, view):
-        try:
-            canvas = view.canvas() if view else None
-            if canvas:
-                return float(canvas.rotation())
-        except Exception:
-            pass
-        return 0.0
-
-    def _current_scale(self, view):
-        """Current zoom in the units setZoomLevel() accepts (1.0 == 100%)."""
-        raw = self._canvas_zoom_raw(view)
-        if raw is not None and raw > 0:
-            return _clamp(raw)
-        doc_id = self._get_document_id()
-        if doc_id and doc_id in self.document_zoom_cache:
-            return _clamp(self.document_zoom_cache[doc_id])
-        return 1.0
+        return QCursor(Qt.SizeHorCursor)
 
     # ------------------------------------------------------------------
-    def _activate(self, mode):
-        if not self._has_active_document() or self.mode_active:
+    def view(self):
+        try:
+            window = Krita.instance().activeWindow()
+            if window and window.views() and Krita.instance().activeDocument():
+                return window.views()[0]
+        except Exception:
+            pass
+        return None
+
+    def document_key(self):
+        try:
+            document = Krita.instance().activeDocument()
+            if document:
+                return document.fileName() or ("untitled_%d" % id(document))
+        except Exception:
+            pass
+        return None
+
+    def arm(self, task):
+        if self.armed or self.view() is None:
             return
-        self.mode = mode
-        self.mode_active = True
-        self.is_dragging = False
-        self.active_view = None
-        QApplication.setOverrideCursor(self.zoom_cursor)
-        if not self.filter_installed:
-            QApplication.instance().installEventFilter(self.event_filter)
-            self.filter_installed = True
+        self.armed = True
+        self.task = task
+        if not self.watching:
+            QApplication.instance().installEventFilter(self.watch)
+            self.watching = True
+        QApplication.setOverrideCursor(self.pointer)
 
-    def activate_zoom_mode(self):
-        self._activate("zoom")
-
-    def activate_rotate_mode(self):
-        self._activate("rotate")
-
-    def deactivate(self):
-        if not self.mode_active:
+    def disarm(self):
+        if not self.armed:
             return
-        self.mode_active = False
-        self.is_dragging = False
-        self.active_view = None
+        self.armed = False
+        self.dragging = False
         try:
             QApplication.restoreOverrideCursor()
         except Exception:
             pass
 
     # ------------------------------------------------------------------
-    def start_drag(self, global_pos):
-        if not self._has_active_document() or global_pos is None:
-            self.deactivate()
+    def press(self, pos):
+        view = self.view()
+        if view is None or pos is None:
+            self.disarm()
             return
-
-        self.active_view = self._get_current_view()
-        self.is_dragging = True
-        self.drag_start_x = int(global_pos.x())
-        self.last_x = self.drag_start_x
-
-        if self.mode == "rotate":
-            self.rotate_sensitivity = _config_rotate_sensitivity()
-            self.rotate_mode = _config_rotate_mode()
-            self.rotate_current = self._current_rotation(self.active_view)
-            self.rotate_center = self._view_center_global()
-            self.rotate_last_angle = self._angle_from_center(global_pos, self.rotate_center)
-            _diag("rotate start %.2f deg (%s)" % (self.rotate_current, self.rotate_mode))
+        canvas = view.canvas()
+        self.dragging = True
+        self.last_x = int(pos.x())
+        if self.task == "rotate":
+            try:
+                self.angle = float(canvas.rotation())
+            except Exception:
+                self.angle = 0.0
+            self.pivot = self._centre()
+            self.pivot_angle = self._angle(pos)
+            _trace("rotate begin %.2f" % self.angle)
         else:
-            self.zoom_sensitivity = _config_zoom_sensitivity()
-            self.current_scale = self._current_scale(self.active_view)
-            self.initial_scale = self.current_scale
-            _diag("zoom start %.5f" % self.current_scale)
+            try:
+                self.zoom = _bound(canvas.zoomLevel(), MIN_ZOOM, MAX_ZOOM) or 1.0
+            except Exception:
+                self.zoom = 1.0
+            key = self.document_key()
+            if key in self.zoom_memory:
+                self.zoom = self.zoom_memory[key]
+            _trace("zoom begin %.5f" % self.zoom)
 
-    def update_drag(self, global_pos):
-        if not self.is_dragging or global_pos is None:
+    def move(self, pos):
+        view = self.view()
+        if view is None or pos is None:
             return
-        view = self.active_view
-        if not view:
-            return
+        canvas = view.canvas()
+        x = int(pos.x())
+        dx = max(-MAX_STEP_PIXELS, min(MAX_STEP_PIXELS, x - self.last_x))
+        self.last_x = x
         try:
-            canvas = view.canvas()
-            if not canvas:
-                return
-            x = int(global_pos.x())
-            dx = x - int(self.last_x)
-            self.last_x = x
-            dx = max(-300, min(300, dx))
-
-            if self.mode == "rotate":
+            if self.task == "rotate":
                 delta = None
-                if self.rotate_mode == "center" and self.rotate_center is not None:
-                    delta = self._angle_delta(global_pos)
+                if self.pivot is not None:
+                    now = self._angle(pos)
+                    if now is not None and self.pivot_angle is not None:
+                        delta = now - self.pivot_angle
+                        while delta > 180.0:
+                            delta -= 360.0
+                        while delta < -180.0:
+                            delta += 360.0
+                        self.pivot_angle = now
                 if delta is None:
-                    delta = dx * self.rotate_sensitivity  # fallback: horizontal
-                self.rotate_current += delta
-                angle = self.rotate_current % 360.0
-                if angle > 180.0:
-                    angle -= 360.0
-                canvas.setRotation(angle)
+                    per_pixel = float(self.settings.get("rotate_sensitivity", DEFAULT_DEGREES_PER_PIXEL))
+                    delta = dx * per_pixel
+                self.angle += delta
+                shown = self.angle % 360.0
+                canvas.setRotation(shown - 360.0 if shown > 180.0 else shown)
             else:
-                factor = 2.0 ** (float(dx) / float(self.zoom_sensitivity))
-                self.current_scale = _clamp(float(self.current_scale) * factor)
-                canvas.setZoomLevel(self.current_scale)
-                doc_id = self._get_document_id()
-                if doc_id:
-                    self.document_zoom_cache[doc_id] = self.current_scale
+                per_step = float(self.settings.get("zoom_sensitivity", DEFAULT_PIXELS_PER_STEP))
+                self.zoom = _bound(self.zoom * (2.0 ** (dx / per_step)), MIN_ZOOM, MAX_ZOOM)
+                canvas.setZoomLevel(self.zoom)
+                key = self.document_key()
+                if key:
+                    self.zoom_memory[key] = self.zoom
         except Exception:
             pass
 
-    def end_drag(self):
+    def release(self):
+        _trace("%s end z=%.5f a=%.2f" % (self.task, self.zoom, self.angle))
+        self.dragging = False
+
+    def _centre(self):
         try:
-            if self.mode == "rotate":
-                _diag("rotate end %.2f deg" % self.rotate_current)
-            else:
-                _diag("zoom end start=%.5f final=%.5f" % (self.initial_scale, self.current_scale))
+            widget = QApplication.focusWidget()
+            if widget is not None and widget.width() > 1:
+                return widget.mapToGlobal(widget.rect().center())
         except Exception:
             pass
-        self.is_dragging = False
-        self.active_view = None
+        return None
+
+    def _angle(self, pos):
+        if self.pivot is None or pos is None:
+            return None
+        dx = float(pos.x() - self.pivot.x())
+        dy = float(pos.y() - self.pivot.y())
+        if dx * dx + dy * dy < PIVOT_DEAD_ZONE ** 2:
+            return None
+        return math.degrees(math.atan2(dy, dx))

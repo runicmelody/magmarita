@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.2 - 2026-10-13
+- Scrubby zoom/rotate rewritten as an independent clean-room implementation;
+  the interaction idea is credited to 10zindraws/Scrubby-Zoom.
+- Added CREDITS.md and a prominent "unofficial" notice.
+- README trimmed to the essentials.
+- Installer: --no-backup and --backup-dir options.
+- Added GitHub Actions CI (byte-compile, keymap load check, zip artifact;
+  attaches the zip to typed tags).
+
+
 ## 1.0.1 - 2026-10-13
 - Slimmed down: one plugin instead of two (scrubby zoom/rotate now lives in
   pykrita/magmarita/scrubby.py), the installer absorbed the uninstaller

@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Byte-compile everything
+        run: python -m compileall -q pykrita install.py tools
+      - name: Keymap loads
+        run: |
+          python -c "import importlib.util as u; s=u.spec_from_file_location('k','pykrita/magmarita/keymap.py'); m=u.module_from_spec(s); s.loader.exec_module(m); print(m.APP_NAME, m.VERSION, len(m.SHORTCUTS), 'shortcuts')"
+      - name: Build itch zip
+        run: python tools/build_itch.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: magmarita-zip
+          path: dist/*.zip
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python tools/build_itch.py
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
