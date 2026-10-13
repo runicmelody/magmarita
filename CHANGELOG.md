@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.1 - 2026-10-13
+- Slimmed down: one plugin instead of two (scrubby zoom/rotate now lives in
+  pykrita/magmarita/scrubby.py), the installer absorbed the uninstaller
+  (install.py --uninstall), the generated shortcut scheme was dropped (the
+  plugin applies the keymap at runtime) and docs/KEYMAP.md + CONTRIBUTING.md
+  were folded into the README. Old split plugin is removed automatically on
+  install.
+
+
 ## 1.0.0 - 2026-10-13
 - First stable release.
 - Branding: hand-drawn logo, transparent banners in light + dark variants,

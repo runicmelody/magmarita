@@ -52,7 +52,7 @@ Krita can do all of it, but the keys are different. MagmaRita closes that gap:
 | Ctrl+E / Ctrl+J | merge / copy | Merge down / Duplicate layer |
 | F6 | - | Brush presets docker |
 
-Full details in [docs/KEYMAP.md](docs/KEYMAP.md).
+Every binding's Krita action id is listed under [Action ids](#action-ids) below.
 
 ## Install
 
@@ -86,7 +86,7 @@ Manager > MagmaRita* (adds *Tools > Scripts > MagmaRita*).
 ## Uninstall
 
 ~~~
-python uninstall.py
+python install.py --uninstall
 ~~~
 
 This removes the plugin and restores the newest "*.bak-magmarita-*" backups
@@ -115,13 +115,11 @@ Config locations:
 ## Repo layout
 
 ~~~
-pykrita/magmarita/   PyKrita plugin (keymap.py is the source of truth)
-pykrita/magmarita_scrubby_zoom/  bundled, fixed Scrubby Zoom plugin
-shortcuts/           MagmaRita.shortcuts - importable Krita shortcut scheme
-tools/build_scheme.py regenerates the scheme from a Krita install
-install.py/.bat/.sh  installer
-uninstall.py         uninstaller
-docs/KEYMAP.md       full keymap reference
+pykrita/magmarita/   the plugin (keymap.py, magmarita.py, scrubby.py, docker.py, settings.py)
+assets/branding/     logo + banners (light and dark)
+tools/               build_itch.py, make_branding_from_mark.py
+install.py/.bat/.sh  installer / uninstaller (--uninstall)
+docs/                branding + itch.io notes
 ~~~
 
 ## Palette (Magma-style panel)
@@ -173,9 +171,47 @@ Config file shape:
 
 ## Contributing
 
-PRs welcome - especially extra Magma parity, Linux/macOS testing, and preset
-bundles. See [CONTRIBUTING.md](CONTRIBUTING.md).
+PRs welcome - especially extra Magma parity, Linux/macOS testing and preset
+bundles. The keymap lives in pykrita/magmarita/keymap.py (single source of
+truth); keep the tables here in sync.
 
 ## License
 
 GPL-3.0-or-later (same spirit as Krita itself). See [LICENSE](LICENSE).
+
+## Action ids
+
+| Key | Action | Krita action id |
+|-----|--------|-----------------|
+| I (and 1) | Dropper | KritaSelected/KisToolColorSampler |
+| B | Brush | KritaShape/KisToolBrush |
+| E | Eraser | erase_action |
+| G | Paint bucket | KritaFill/KisToolFill |
+| Shift+G | Gradient | KritaFill/KisToolGradient |
+| U | Rectangle | KritaShape/KisToolRectangle |
+| Shift+U | Ellipse | KritaShape/KisToolEllipse |
+| M | Selection | KisToolSelectRectangular |
+| L | Lasso | KisToolSelectPolygonal |
+| W | Magic wand | KisToolSelectContiguous |
+| V | Move | KritaTransform/KisToolMove |
+| Shift+T | Transform | KisToolTransform |
+| C | Crop | KisToolCrop |
+| Z | Scrubby zoom | scrubby_zoom_activate |
+| R | Scrubby rotate | scrubby_rotate_activate |
+| = / - | Zoom in / out | view_zoom_in / view_zoom_out |
+| Home / End | Fit / 100% | zoom_to_fit / zoom_to_100pct |
+| Tab | Toggle UI | view_show_canvas_only |
+| H | Flip canvas | mirror_canvas |
+| X | Switch colours | toggle_fg_bg |
+| Ctrl+Z / Ctrl+Shift+Z | Undo / redo | edit_undo / edit_redo |
+| Ctrl+A / Ctrl+D | Select all / deselect | select_all / deselect |
+| Ctrl+Shift+I | Invert selection | invert_selection |
+| [ / ] | Brush size | decrease_brush_size / increase_brush_size |
+| Shift+N | Add layer | add_new_paint_layer |
+| Ctrl+E / Ctrl+J | Merge / duplicate | merge_layer / duplicatelayer |
+| 2-6 | Preset slots | magmarita_preset_1..5 |
+| Ctrl | Line assist | KritaShape/KisToolLine |
+
+Cleared so MagmaRita's keys win: show_color_history, show_common_colors,
+make_brush_color_lighter, decrease_opacity, show_minimal_shade_selector,
+invert, plus Krita's canvas-input keys 0-9, = - +, R and Ctrl.

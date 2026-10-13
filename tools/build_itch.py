@@ -9,8 +9,8 @@ import zipfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DIST = os.path.join(ROOT, "dist")
 
-INCLUDE_DIRS = ["pykrita", "shortcuts"]
-INCLUDE_FILES = ["install.py", "install.bat", "install.sh", "uninstall.py",
+INCLUDE_DIRS = ["pykrita"]
+INCLUDE_FILES = ["install.py", "install.bat", "install.sh",
                  "README.md", "LICENSE", "CHANGELOG.md"]
 INCLUDE_TREES = ["docs"]
 SKIP_BRANDING = ["github-social-1280x640.png", "preview-logos.png",

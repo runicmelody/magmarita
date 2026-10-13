@@ -344,7 +344,7 @@ class MagmaRitaDocker(DockWidget):
 
     def _open_settings(self):
         try:
-            from .magmarita_settings import MagmaRitaSettings
+            from .settings import MagmaRitaSettings
             dlg = MagmaRitaSettings(self)
             exec_fn = getattr(dlg, "exec_", None) or dlg.exec
             if exec_fn():

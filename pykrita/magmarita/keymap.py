@@ -14,7 +14,7 @@ import sys
 import time
 
 APP_NAME = "MagmaRita"
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 HOMEPAGE = "https://github.com/runicmelody/magmarita"
 
 # ---------------------------------------------------------------------------
@@ -158,7 +158,6 @@ TENBRUSHES_SETTINGS = {
 PYTHON_PLUGINS = {
     "enable_tenbrushes": "true",
     "enable_magmarita": "true",
-    "enable_magmarita_scrubby_zoom": "true",
     "enable_scrubby_zoom": "false",
 }
 
