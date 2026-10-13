@@ -63,7 +63,7 @@ def draw_block(d, x, y, lines):
 
 
 def compose(mark, width, height, icon_px, title_px, sub_px, pad, tagline=True):
-    img = Image.new("RGBA", (width, height), BG + (255,))
+    img = Image.new("RGBA", (width, height), (0, 0, 0, 0))   # transparent banner
     icon_px = min(icon_px, mark.width)
     icon = mark.resize((icon_px, icon_px), Image.LANCZOS)
     img.paste(icon, (pad, (height - icon_px) // 2), icon)
@@ -123,25 +123,28 @@ def main():
             im = Image.open(p).convert("RGB")
             ims.append((name, im.resize((w, int(im.height * w / im.width)), Image.LANCZOS)))
     if ims:
-        pad, lab = 24, 30
-        W = max(i.width for _n, i in ims) + pad * 2
-        H = sum(i.height + lab + pad for _n, i in ims) + pad
+        pad, lab = 22, 28
+        tw = max(i.width for _n, i in ims)
+        th = sum(i.height + lab for _n, i in ims) + pad
+        W = tw * 2 + pad * 3
+        H = th + pad
         board = Image.new("RGB", (W, H), (232, 235, 238))
         d = ImageDraw.Draw(board)
-        f = ImageFont.truetype(FB, 17)
+        f = ImageFont.truetype(FB, 16)
         y = pad
         for name, im in ims:
-            board.paste(im, (pad, y))
-            d.text((pad, y + im.height + 4), name, font=f, fill=(70, 80, 92))
-            y += im.height + lab + pad
+            for j, bg in enumerate(((255, 255, 255), (26, 30, 36))):
+                x = pad + j * (tw + pad)
+                tile = Image.new("RGB", im.size, bg)
+                tile.paste(im, (0, 0), im)
+                board.paste(tile, (x, y))
+                d.text((x, y + im.height + 4), name + ("  (on dark)" if j else "  (on light)"),
+                       font=f, fill=(70, 80, 92))
+            y += im.height + lab
         board.save(os.path.join(OUT, "preview-logos.png"))
         print("wrote preview-logos.png", board.size)
 
-    try:
-        import subprocess
-        subprocess.run([sys.executable, os.path.join(ROOT, "tools", "trace_logo.py"), SRC], check=False)
-    except Exception as exc:
-        print("vector trace skipped:", exc)
+
 
 
 if __name__ == "__main__":

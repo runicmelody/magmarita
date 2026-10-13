@@ -13,7 +13,8 @@ INCLUDE_DIRS = ["pykrita", "shortcuts"]
 INCLUDE_FILES = ["install.py", "install.bat", "install.sh", "uninstall.py",
                  "README.md", "LICENSE", "CHANGELOG.md"]
 INCLUDE_TREES = ["docs"]
-SKIP_BRANDING = ["github-social-1280x640.png"]
+SKIP_BRANDING = ["github-social-1280x640.png", "preview-logos.png",
+                 "preview-board.png", "preview-gradient.png"]
 
 
 def version():
@@ -46,7 +47,7 @@ def main():
             add_tree(zf, ROOT, t)
         brand = os.path.join(ROOT, "assets", "branding")
         for name in os.listdir(brand):
-            if name in SKIP_BRANDING or not name.endswith((".png", ".svg")):
+            if name in SKIP_BRANDING or not name.endswith(".png"):
                 continue
             zf.write(os.path.join(brand, name), "assets/branding/" + name)
     print("wrote %s (%.1f KB)" % (out, os.path.getsize(out) / 1024.0))

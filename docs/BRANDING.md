@@ -16,11 +16,10 @@ A rounded-square badge in **Krita's palette** (blue to teal gradient) with a whi
 
 | File | Use |
 |---|---|
-| `magmarita-icon.svg` | vector master (512x512) |
 | `magmarita-icon*.png` | app/plugin icons, 32 to 1024 px |
-| `magmarita-logo-horizontal.png` | README header / dark-on-light |
+| `magmarita-logo-horizontal.png` | README header (transparent background) |
 | `magmarita-wordmark.png` | icon + name, no tagline |
-| `itch-cover-630x250.png` | itch.io cover image |
+| `itch-cover-630x250.png` | itch.io cover image (transparent background) |
 | `github-social-1280x640.png` | repo social preview |
 
 ## Usage rules
