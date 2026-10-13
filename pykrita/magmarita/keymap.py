@@ -16,7 +16,7 @@ import time
 APP_NAME = "MagmaRita"
 # Krita versions this mapping has actually been tested against (major.minor).
 TESTED_KRITA = ("5.2", "5.3")
-VERSION = "1.4.0"
+VERSION = "1.5.0"
 HOMEPAGE = "https://github.com/runicmelody/magmarita"
 
 # ---------------------------------------------------------------------------

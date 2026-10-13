@@ -12,7 +12,24 @@
 - Reset state: zoom ~**50-70 %**, rotation **0**, foreground/background colours
   set, single brush active.
 
-## 1) Capture tool
+## 1) Best source: Krita's own Recorder (no screen capture at all)
+
+Settings > Dockers > **Recorder** gives you a clean, canvas-only capture:
+
+1. Set **frame rate 12**, a **capture size** around 50-75 % (720-960 px wide) and an
+   **output folder** (one PNG per frame).
+2. Press record, do the 9-second routine, press stop.
+3. Turn the frames into a GIF:
+
+~~~
+python tools/frames_to_gif.py <frames-folder> demo.gif --fps 12 --width 900
+~~~
+
+That gives you a GIF with no desktop, no dockers and no mouse cursor clutter - and
+it is sharper than a screen recording. Use a screen recorder only when you want to
+show the keyboard/interface itself.
+
+## 1b) Capture tool (screen region)
 
 | OS | Tool | Why |
 |---|---|---|

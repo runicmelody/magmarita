@@ -31,7 +31,8 @@ originals as "*.bak-magmarita-<timestamp>".
 | --no-plugin | write the keymap only, skip the plugin |
 | --uninstall | remove the plugin and restore the newest backup |
 
-Then start Krita.
+Then start Krita. Flatpak and Snap installs are found automatically; override
+with MAGMARITA_CONFIG_DIR / MAGMARITA_RESOURCE_DIR if needed.
 
 ## Keys
 

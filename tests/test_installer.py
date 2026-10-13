@@ -68,6 +68,33 @@ def main():
     check("unrelated bindings kept (space pan)", "[20]" in profile)
     check("dry run reports nothing left to clear", km.patch_canvas_input(dry_run=True) == 0)
 
+    # env overrides work everywhere
+    os.environ["MAGMARITA_CONFIG_DIR"] = os.path.join(tmp, "override-config")
+    os.environ["MAGMARITA_RESOURCE_DIR"] = os.path.join(tmp, "override-krita")
+    check("env override wins for config dir",
+          km.config_dir() == os.path.join(tmp, "override-config"))
+    check("env override wins for resource dir",
+          km.resource_dir() == os.path.join(tmp, "override-krita"))
+    del os.environ["MAGMARITA_CONFIG_DIR"]
+    del os.environ["MAGMARITA_RESOURCE_DIR"]
+
+    # Flatpak / Snap detection is POSIX only
+    if os.name != "nt" and sys.platform != "darwin":
+        flat_cfg = os.path.join(tmp, ".var", "app", "org.kde.krita", "config")
+        flat_res = os.path.join(tmp, ".var", "app", "org.kde.krita", "data", "krita")
+        os.makedirs(flat_cfg, exist_ok=True)
+        os.makedirs(flat_res, exist_ok=True)
+        check("Flatpak config dir detected", km.config_dir() == flat_cfg, km.config_dir())
+        check("Flatpak resource dir detected", km.resource_dir() == flat_res, km.resource_dir())
+        shutil.rmtree(os.path.join(tmp, ".var"), ignore_errors=True)
+        check("falls back to XDG config dir", km.config_dir().endswith(os.path.join(".config", "")[:-1]) or "config" in km.config_dir())
+        snap_cfg = os.path.join(tmp, "snap", "krita", "current", ".config")
+        snap_res = os.path.join(tmp, "snap", "krita", "current", ".local", "share", "krita")
+        os.makedirs(snap_cfg, exist_ok=True)
+        os.makedirs(snap_res, exist_ok=True)
+        check("Snap config dir detected", km.config_dir() == snap_cfg, km.config_dir())
+        check("Snap resource dir detected", km.resource_dir() == snap_res, km.resource_dir())
+
     if failures:
         print("\n%d check(s) failed - temp dir kept at %s" % (len(failures), tmp))
         for name in failures:

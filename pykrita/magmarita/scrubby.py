@@ -35,16 +35,30 @@ SUPPORTED_KRITA = ("5.2", "5.3")
 
 
 def _krita_dirs():
-    """(resource dir, config dir) per platform - same logic as keymap.py."""
+    """(resource dir, config dir) - mirrors keymap.py, sandboxes included."""
     home = os.path.expanduser("~")
     if os.name == "nt":
-        return (os.path.join(os.environ.get("APPDATA", home), "krita"),
-                os.environ.get("LOCALAPPDATA", home))
-    if sys.platform == "darwin":
-        return (os.path.join(home, "Library", "Application Support", "krita"),
-                os.path.join(home, "Library", "Preferences"))
-    return (os.path.join(home, ".local", "share", "krita"),
-            os.path.join(home, ".config"))
+        resource = os.path.join(os.environ.get("APPDATA", home), "krita")
+        config = os.environ.get("LOCALAPPDATA", home)
+    elif sys.platform == "darwin":
+        resource = os.path.join(home, "Library", "Application Support", "krita")
+        config = os.path.join(home, "Library", "Preferences")
+    else:
+        resource = config = None
+        for sandbox_resource, sandbox_config in (
+                (os.path.join(home, ".var", "app", "org.kde.krita", "data", "krita"),
+                 os.path.join(home, ".var", "app", "org.kde.krita", "config")),
+                (os.path.join(home, "snap", "krita", "current", ".local", "share", "krita"),
+                 os.path.join(home, "snap", "krita", "current", ".config"))):
+            if os.path.isdir(sandbox_resource) or os.path.isdir(sandbox_config):
+                resource, config = sandbox_resource, sandbox_config
+                break
+        if resource is None:
+            resource = os.path.join(
+                os.environ.get("XDG_DATA_HOME") or os.path.join(home, ".local", "share"), "krita")
+            config = os.environ.get("XDG_CONFIG_HOME") or os.path.join(home, ".config")
+    return (os.environ.get("MAGMARITA_RESOURCE_DIR", resource),
+            os.environ.get("MAGMARITA_CONFIG_DIR", config))
 
 
 def _config():

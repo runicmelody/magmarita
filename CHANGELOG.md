@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.0 - 2026-10-13
+- Flatpak and Snap Krita installs are detected automatically; env overrides
+  MAGMARITA_CONFIG_DIR / MAGMARITA_RESOURCE_DIR for anything unusual.
+- New tools/frames_to_gif.py - turns Krita Recorder PNG frames (or any PNG
+  sequence) into an optimised GIF.
+- docs/GIF.md documents the Recorder workflow.
+
+
 ## 1.4.0 - 2026-10-13
 - Added plugin-module tests (tests/test_plugin.py): version guard, path
   agreement between modules, opt-in diagnostics gate, small helpers - run in CI
