@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0 - 2026-10-13
+- New: **on-canvas key hints** - flashes the key/preset name (View.floatingMessage)
+  when you switch presets, arm zoom/rotate or start the line assist. Toggle in
+  Settings ("Key hints") or magmarita.json. Handy for demos/GIFs.
+
+
 ## 1.0.3 - 2026-10-13
 - Discoverability: docs/FAQ.md with the questions people actually search for,
   a keyword-rich landing page (site/) for GitHub Pages, richer GitHub repo

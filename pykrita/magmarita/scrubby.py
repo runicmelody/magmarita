@@ -18,7 +18,7 @@ import os
 
 from krita import Extension, Krita
 from PyQt5.QtCore import QEvent, QObject, Qt, QTimer
-from PyQt5.QtGui import QCursor, QKeySequence, QPixmap
+from PyQt5.QtGui import QCursor, QIcon, QKeySequence, QPixmap
 from PyQt5.QtWidgets import QApplication
 
 ZOOM_ACTION = "scrubby_zoom_activate"
@@ -179,6 +179,16 @@ class ScrubbyZoomExtension(Extension):
             pass
         return None
 
+    def _flash(self, text):
+        if not self.settings.get("key_hints", True):
+            return
+        try:
+            window = Krita.instance().activeWindow()
+            if window and window.views():
+                window.views()[0].showFloatingMessage(text, QIcon(), 1200, 1)
+        except Exception:
+            pass
+
     def arm(self, task):
         if self.armed or self.view() is None:
             return
@@ -188,6 +198,7 @@ class ScrubbyZoomExtension(Extension):
             QApplication.instance().installEventFilter(self.watch)
             self.watching = True
         QApplication.setOverrideCursor(self.pointer)
+        self._flash("Zoom: hold and drag" if task == "zoom" else "Rotate: drag in a circle")
 
     def disarm(self):
         if not self.armed:

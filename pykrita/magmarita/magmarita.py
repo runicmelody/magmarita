@@ -14,7 +14,7 @@ from collections import deque
 
 from krita import Extension, Krita
 from PyQt5.QtCore import QEvent, QObject, Qt, QTimer
-from PyQt5.QtGui import QKeySequence
+from PyQt5.QtGui import QIcon, QKeySequence
 from PyQt5.QtWidgets import (
     QAbstractSpinBox,
     QAction,
@@ -147,6 +147,7 @@ class _DigitFilter(QObject):
                 a = Krita.instance().action(action)
                 if a is not None:
                     a.trigger()
+                    self.ext._flash("Dropper")
                     return True
             return False
         except Exception:
@@ -297,6 +298,7 @@ class MagmaRitaExtension(Extension):
             if a is not None:
                 a.trigger()
                 self._line_active = True
+                self._flash("Line")
                 _log("[line] straight-line assist on")
         except Exception as exc:
             _log("[line] error: %r" % exc)
@@ -321,6 +323,17 @@ class MagmaRitaExtension(Extension):
         except Exception:
             return False
 
+    def _flash(self, text):
+        """Brief on-canvas hint (View.showFloatingMessage)."""
+        if not self.cfg.get("key_hints", True):
+            return
+        try:
+            window = Krita.instance().activeWindow()
+            if window and window.views():
+                window.views()[0].showFloatingMessage(text, QIcon(), 1200, 1)
+        except Exception:
+            pass
+
     def _set_preset(self, preset_name):
         try:
             window = Krita.instance().activeWindow()
@@ -335,6 +348,7 @@ class MagmaRitaExtension(Extension):
                 act.trigger()
             window.views()[0].setCurrentBrushPreset(
                 Krita.instance().resources("preset")[resolved])
+            self._flash(resolved)
             _log("[preset] ok: %s" % resolved)
         except Exception as exc:  # noqa: BLE001
             _log("[preset] error: %r" % exc)

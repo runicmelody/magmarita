@@ -96,6 +96,10 @@ class MagmaRitaSettings(QDialog):
         self.lineassist.setChecked(bool(self.cfg.get("line_assist", True)))
         form.addRow("Line assist", self.lineassist)
 
+        self.hints = QCheckBox("Show key hints on screen")
+        self.hints.setChecked(bool(self.cfg.get("key_hints", True)))
+        form.addRow("Key hints", self.hints)
+
         self.linetool = QComboBox()
         self.linetool.addItem("Line (hold Ctrl, drag)", "KritaShape/KisToolLine")
         self.linetool.addItem("Polyline (chained clicks)", "KisToolPolyline")
@@ -123,4 +127,5 @@ class MagmaRitaSettings(QDialog):
                 "rotate_sensitivity": float(self.rotzoom.value()),
                 "rotate_mode": self.rotmode.currentData() or "center",
                 "line_assist": bool(self.lineassist.isChecked()),
-                "line_tool": self.linetool.currentData() or "KritaShape/KisToolLine"}
+                "line_tool": self.linetool.currentData() or "KritaShape/KisToolLine",
+                "key_hints": bool(self.hints.isChecked())}

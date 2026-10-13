@@ -57,7 +57,8 @@ and Lock Alpha toggles, brush size/opacity sliders.
 ## Customise
 
 Tools > Scripts > MagmaRita > Settings... - or edit "magmarita.json" in Krita's
-resource folder: preset slots, zoom/rotate keys and sensitivity, line assist.
+resource folder: preset slots, zoom/rotate keys and sensitivity, line assist,
+on-canvas key hints.
 
 ## Notes
 
