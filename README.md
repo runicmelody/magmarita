@@ -67,7 +67,10 @@ on-canvas key hints.
   (show_color_history, show_common_colors, make_brush_color_lighter,
   decrease_opacity, show_minimal_shade_selector) and canvas-input keys
   0-9, = - +, R and Ctrl. Details in keymap.py.
-- Troubleshooting: "%LOCALAPPDATA%\magmarita-diag.log".
+- Troubleshooting: **Tools > Scripts > MagmaRita > Diagnostics...** (Krita
+  version, resolved keys, cleared conflicts, preset check) - the fastest way to
+  report a bug. Set "Diagnostics" in Settings to also write a log in Krita's
+  resource folder.
 - FAQ (also written for search engines): [docs/FAQ.md](docs/FAQ.md)
 - Recording a demo GIF: [docs/GIF.md](docs/GIF.md)
 - Prefer to set it up by hand? [docs/MANUAL-SETUP.md](docs/MANUAL-SETUP.md)

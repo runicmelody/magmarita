@@ -6,6 +6,12 @@ sponsored by or endorsed by Magma (magma.com) or the Krita Foundation**.
 owner. The MagmaRita logo is an original mark and contains no Krita or Magma
 artwork - their brand colours were only used as reference.
 
+## The name
+
+"MagmaRita" is a pun on **Magma** + **Margherita** (the pizza) - it is not
+derived from the Krita wordmark. It is still an unofficial fan project, hence the
+disclaimer above.
+
 ## Idea credit: Scrubby Zoom
 
 - Upstream: <https://github.com/10zindraws/Scrubby-Zoom> (by 10zindraws)
