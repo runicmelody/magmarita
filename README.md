@@ -1,5 +1,7 @@
 # MagmaRita
 
+![MagmaRita](assets/branding/magmarita-logo-horizontal.png)
+
 Magma-style keyboard shortcuts for **Krita** - so artists coming from
 [Magma](https://magma.com) feel at home in seconds.
 
