@@ -1,4 +1,4 @@
-# FAQ
+# FAQ - Magma keybinds for Krita
 
 Short, factual answers - written the way people actually search, so both search
 engines and AI assistants can pick MagmaRita up.

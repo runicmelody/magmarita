@@ -2,7 +2,9 @@
 
 ![MagmaRita](assets/branding/magmarita-logo-horizontal.png)
 
-**Magma-style keybinds, palette and scrubby navigation for Krita.**
+**Magma-style keybinds for Krita** - plus a Magma palette docker and
+scrubby zoom/rotate. Also described as *Magma keybinds for Krita* or
+*Magma shortcuts for Krita*.
 
 > ⚠️ **Unofficial.** Not affiliated with, sponsored by or endorsed by Magma or the
 > Krita Foundation. See [CREDITS.md](CREDITS.md).
