@@ -405,6 +405,12 @@ class MagmaRitaExtension(Extension):
                     a.setShortcut(QKeySequence())
                     filled.append("cleared " + name)
 
+            try:
+                removed = keymap.patch_canvas_input()
+                if removed:
+                    _log("canvas input: removed %d conflicting bindings" % removed)
+            except Exception as exc:
+                _log("canvas input patch error: %r" % exc)
             _log("=== MagmaRita %s bootstrap ===" % keymap.VERSION)
             for i, act in enumerate(self._slot_actions):
                 _log("slot %d -> key %r preset %r" % (

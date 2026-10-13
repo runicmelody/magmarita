@@ -1,22 +1,28 @@
 # Changelog
 
-## 0.9.2 - 2026-10-13
-- Straight-line assist now switches to the Line tool the moment Ctrl goes down
-  (was on mouse-press, too late for the first stroke).
+## 0.9.3 - 2026-10-13
+- Line assist now uses Krita's **Polyline** tool: hold Ctrl and click, and each
+  segment continues from the previous point. (Settings: Line tool = Polyline /
+  Line.)
+- Fixed Ctrl still picking colour: MagmaRita now also clears the **Ctrl**
+  bindings in Krita's canvas input (Alternate Invocation, Zoom Canvas), so Ctrl
+  is free for the line assist.
+- Canvas input is re-patched on every start.
 
+## 0.9.2 - 2026-10-13
+- Line assist switches tool on Ctrl key-down (timing fix).
+
+## 0.9.1 - 2026-10-13
+- Cleared the Ctrl+click colour pick (canvas input Change Primary Setting).
 
 ## 0.9.0 - 2026-10-13
-- **Rotate around the canvas centre**: hold R and drag in a circle to turn the
-  canvas (config: rotate_mode = center | scrubby).
-- **Ctrl straight-line assist**: hold Ctrl and draw to get a perfectly straight
-  line (switches to Krita's Line tool, returns to the brush on release).
-  config: line_assist / line_tool / line_restore_tool.
+- Rotate around the canvas centre; Ctrl straight-line assist.
 
 ## 0.8.0 - 2026-10-13
-- Hold R + drag to rotate the canvas (configurable rotate_key/sensitivity).
+- Hold R + drag to rotate the canvas.
 
 ## 0.7.1 - 2026-10-13
-- Fixed H/U/L/I/Shift+N not working (unbinds Krita defaults that claimed them).
+- Fixed H/U/L/I/Shift+N (unbinds Krita defaults that claimed them).
 
 ## 0.7.0 - 2026-10-13
 - Palette: Pen Pressure + Lock Alpha toggles.

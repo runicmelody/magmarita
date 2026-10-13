@@ -27,7 +27,7 @@
 <tr><td>C</td><td>Crop</td></tr>
 <tr><td>Z</td><td>Scrubby zoom (hold and drag horizontally)</td></tr>
 <tr><td>R</td><td>Rotate canvas around the centre (hold and drag)</td></tr>
-<tr><td>Ctrl</td><td>Straight line: hold Ctrl and draw</td></tr>
+<tr><td>Ctrl</td><td>Straight lines: hold Ctrl and click (chained)</td></tr>
 <tr><td>= / -</td><td>Zoom in / out</td></tr>
 <tr><td>Home / End</td><td>Fit on screen / 100%</td></tr>
 <tr><td>Tab</td><td>Toggle UI</td></tr>
@@ -82,9 +82,12 @@ again.</p>
 <p><b>Rotate:</b> hold <b>R</b> and drag - by default the canvas turns around
 its centre (drag in a circle). Set "Rotate mode" to "Horizontal (scrubby)" in
 Settings if you prefer left/right dragging.</p>
-<p><b>Straight line:</b> hold <b>Ctrl</b> and start a stroke - MagmaRita
-switches to Krita's Line tool for a perfectly straight line, and returns to the
-brush when you let Ctrl go. (Ctrl+Z etc. are unaffected.)</p>
+<p><b>Straight lines:</b> hold <b>Ctrl</b> and click to draw straight
+segments - each click continues from the previous point (Krita's Polyline tool).
+Let go of Ctrl to return to the brush. Choose "Line (click and drag)" in Settings
+if you prefer a single drag-line instead.</p>
+<p>MagmaRita also removes Krita's Ctrl-based canvas-input bindings (Ctrl
+alternate-invocation / colour pick, Ctrl zoom) so Ctrl is free for this.</p>
 
 <h2>License</h2>
 <p>GPL-3.0-or-later. Unofficial community project; not affiliated with Magma or

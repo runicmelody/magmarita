@@ -36,7 +36,7 @@ Krita can do all of it, but the keys are different. MagmaRita closes that gap:
 | C | - | Crop |
 | Z | zoom (hold + drag) | Scrubby Zoom *(bundled plugin)* |
 | R | rotate canvas around the centre (hold + drag) | Scrubby Rotate *(bundled plugin)* |
-| Ctrl | straight line from the stroke | Line tool (line assist) |
+| Ctrl | chained straight lines (click, click, ...) | Polyline tool (line assist) |
 | = / - | zoom in / out | Zoom in / out |
 | Home / End | fit / actual pixels | Fit to page / 100% |
 | H | flip horizontally | Mirror canvas |

@@ -14,7 +14,7 @@ import sys
 import time
 
 APP_NAME = "MagmaRita"
-VERSION = "0.9.2"
+VERSION = "0.9.3"
 HOMEPAGE = "https://github.com/runicmelody/magmarita"
 
 # ---------------------------------------------------------------------------
@@ -176,7 +176,7 @@ def _default_config():
             "rotate_key": "R",
             "rotate_mode": "center",
             "line_assist": True,
-            "line_tool": "KritaShape/KisToolLine",
+            "line_tool": "KisToolPolyline",
             "line_restore_tool": "KritaShape/KisToolBrush",
             "zoom_sensitivity": DEFAULT_ZOOM_SENSITIVITY,
             "rotate_sensitivity": DEFAULT_ROTATE_SENSITIVITY}
@@ -214,7 +214,7 @@ def load_config():
     cfg.setdefault("rotate_key", "R")
     cfg.setdefault("rotate_mode", "center")
     cfg.setdefault("line_assist", True)
-    cfg.setdefault("line_tool", "KritaShape/KisToolLine")
+    cfg.setdefault("line_tool", "KisToolPolyline")
     cfg.setdefault("line_restore_tool", "KritaShape/KisToolBrush")
     cfg.setdefault("zoom_sensitivity", DEFAULT_ZOOM_SENSITIVITY)
     cfg.setdefault("rotate_sensitivity", DEFAULT_ROTATE_SENSITIVITY)
@@ -228,12 +228,13 @@ def load_config():
 # Whole canvas-input sections MagmaRita clears.  "Change Primary Setting" is
 # Krita's Ctrl+click colour picker, which collides with the Ctrl straight-line
 # assist.
-CANVAS_INPUT_SECTIONS_TO_CLEAR = ["Change Primary Setting"]
+CANVAS_INPUT_SECTIONS_TO_CLEAR = []
 
 CANVAS_INPUT_KEYS_TO_CLEAR = [
     "30", "31", "32", "33", "34", "35", "36", "37", "38", "39",  # 0-9
     "2b", "2d", "3d",                                            # + - =
     "52",                                                        # R (rotate)
+    "1000021",                                                   # Ctrl (line assist)
 ]
 
 
