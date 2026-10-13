@@ -63,12 +63,15 @@ def main():
     if not os.path.isdir(OUT):
         os.makedirs(OUT)
 
-    for size in ICON_SIZES:
+    cap = mark.width
+    sizes = sorted({s for s in ICON_SIZES if s <= cap} | {cap}, reverse=True)
+    print("source mark: %dpx -> generating icons %s (never upscaled)" % (cap, sizes))
+    for size in sizes:
         scaled(mark, size).save(os.path.join(OUT, "magmarita-icon-%d.png" % size))
-    scaled(mark, 512).save(os.path.join(OUT, "magmarita-icon.png"))
+    scaled(mark, min(cap, 512)).save(os.path.join(OUT, "magmarita-icon.png"))
 
     def wordmark(width, tagline=True):
-        ic = int(width * 0.20)
+        ic = min(int(width * 0.20), mark.width)
         icon = scaled(mark, ic)
         f1 = ImageFont.truetype(FB, int(width * 0.115))
         f2 = ImageFont.truetype(FL, int(width * 0.045))
@@ -91,7 +94,7 @@ def main():
     wordmark(1200, tagline=False).save(os.path.join(OUT, "magmarita-wordmark.png"))
 
     cover = Image.new("RGBA", (630, 250), WHITE + (255,))
-    it = scaled(mark, 150)
+    it = scaled(mark, min(150, mark.width))
     cover.paste(it, (34, 50), it)
     d = ImageDraw.Draw(cover)
     d.text((210, 74), "MagmaRita", font=ImageFont.truetype(FB, 52), fill=BLUE_TXT + (255,))
@@ -100,7 +103,7 @@ def main():
     cover.save(os.path.join(OUT, "itch-cover-630x250.png"))
 
     social = Image.new("RGBA", (1280, 640), WHITE + (255,))
-    sb = scaled(mark, 340)
+    sb = scaled(mark, min(340, mark.width))
     social.paste(sb, (110, 150), sb)
     d = ImageDraw.Draw(social)
     d.text((520, 205), "MagmaRita", font=ImageFont.truetype(FB, 104), fill=BLUE_TXT + (255,))
