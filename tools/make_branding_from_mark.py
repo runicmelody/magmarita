@@ -112,7 +112,15 @@ def main():
     d.text((524, 452), "github.com/runicmelody/magmarita", font=ImageFont.truetype(FL, 30), fill=INK + (200,))
     social.save(os.path.join(OUT, "github-social-1280x640.png"))
 
-    print("done - rebuilt %d icons + logo + cover + social" % len(ICON_SIZES))
+    print("done - rebuilt icons + logo + cover + social")
+
+    # keep a vector copy in sync
+    try:
+        import subprocess
+        import sys as _sys
+        subprocess.run([_sys.executable, os.path.join(ROOT, "tools", "trace_logo.py"), SRC], check=False)
+    except Exception as exc:
+        print("vector trace skipped:", exc)
 
 
 if __name__ == "__main__":

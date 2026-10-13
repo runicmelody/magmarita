@@ -46,7 +46,7 @@ def main():
             add_tree(zf, ROOT, t)
         brand = os.path.join(ROOT, "assets", "branding")
         for name in os.listdir(brand):
-            if name in SKIP_BRANDING or not name.endswith(".png"):
+            if name in SKIP_BRANDING or not name.endswith((".png", ".svg")):
                 continue
             zf.write(os.path.join(brand, name), "assets/branding/" + name)
     print("wrote %s (%.1f KB)" % (out, os.path.getsize(out) / 1024.0))
