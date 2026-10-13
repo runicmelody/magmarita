@@ -108,6 +108,10 @@ class MagmaRitaSettings(QDialog):
         self.diag.setChecked(bool(self.cfg.get("diagnostics", False)))
         form.addRow("Diagnostics", self.diag)
 
+        self.safe = QCheckBox("Safe mode (skip risky config patching)")
+        self.safe.setChecked(bool(self.cfg.get("safe_mode", False)))
+        form.addRow("Safe mode", self.safe)
+
         self.linetool = QComboBox()
         self.linetool.addItem("Line (hold Ctrl, drag)", "KritaShape/KisToolLine")
         self.linetool.addItem("Polyline (chained clicks)", "KisToolPolyline")
@@ -138,4 +142,5 @@ class MagmaRitaSettings(QDialog):
                 "line_tool": self.linetool.currentData() or "KritaShape/KisToolLine",
                 "key_hints": bool(self.hints.isChecked()),
                 "enforce_keymap": bool(self.enforce.isChecked()),
-                "diagnostics": bool(self.diag.isChecked())}
+                "diagnostics": bool(self.diag.isChecked()),
+                "safe_mode": bool(self.safe.isChecked())}

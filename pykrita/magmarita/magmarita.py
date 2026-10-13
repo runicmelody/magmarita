@@ -20,11 +20,15 @@ from PyQt5.QtWidgets import (
     QAction,
     QApplication,
     QComboBox,
+    QDialog,
+    QHBoxLayout,
     QKeySequenceEdit,
     QLineEdit,
     QMessageBox,
     QPlainTextEdit,
+    QPushButton,
     QTextEdit,
+    QVBoxLayout,
 )
 
 from . import keymap
@@ -163,6 +167,35 @@ class _DigitFilter(QObject):
             return False
 
 
+class _ReportDialog(QDialog):
+    """Read-only text window with a copy button (bug reports, diagnostics)."""
+
+    def __init__(self, title, text, parent=None):
+        super(_ReportDialog, self).__init__(parent)
+        self.setWindowTitle(title)
+        self.resize(660, 480)
+        layout = QVBoxLayout(self)
+        self.view = QPlainTextEdit()
+        self.view.setReadOnly(True)
+        self.view.setPlainText(text)
+        layout.addWidget(self.view)
+        row = QHBoxLayout()
+        copy = QPushButton("Copy to clipboard")
+        copy.clicked.connect(self._copy)
+        close = QPushButton("Close")
+        close.clicked.connect(self.accept)
+        row.addWidget(copy)
+        row.addStretch(1)
+        row.addWidget(close)
+        layout.addLayout(row)
+
+    def _copy(self):
+        try:
+            QApplication.clipboard().setText(self.view.toPlainText())
+        except Exception:
+            pass
+
+
 class MagmaRitaExtension(Extension):
 
     def __init__(self, parent):
@@ -170,6 +203,7 @@ class MagmaRitaExtension(Extension):
         global _EXTENSION
         _EXTENSION = self
         self.cfg = {}
+        self.safe_mode = False
         self._slots = []
         self._slot_actions = []
         self._preset_by_index = {}
@@ -212,6 +246,8 @@ class MagmaRitaExtension(Extension):
         self._act_restore.triggered.connect(self._on_restore)
         self._act_settings = window.createAction("magmarita_settings", "Settings...")
         self._act_settings.triggered.connect(self._on_settings)
+        self._act_diag = window.createAction("magmarita_diagnostics", "Diagnostics...")
+        self._act_diag.triggered.connect(self._on_diagnostics)
         self._act_about = window.createAction("magmarita_about", "About MagmaRita")
         self._act_about.triggered.connect(self._on_about)
 
@@ -387,10 +423,24 @@ class MagmaRitaExtension(Extension):
                 _log("[trigger] %s" % name)
         return _cb
 
+    def _krita_version(self):
+        try:
+            return str(Krita.instance().version())
+        except Exception:
+            return "unknown"
+
     def _bootstrap(self):
         try:
             K = Krita.instance()
             filled = []
+            version = self._krita_version()
+            if not keymap.version_supported(version):
+                self.safe_mode = True
+                _log("Krita %s outside tested range %s -> safe mode"
+                     % (version, keymap.TESTED_KRITA))
+                self._flash("MagmaRita: Krita %s untested - safe mode" % version)
+            if self.cfg.get("safe_mode", False):
+                self.safe_mode = True
 
             for i, act in enumerate(self._slot_actions):
                 slot = self._slots[i] if i < len(self._slots) else {}
@@ -424,18 +474,20 @@ class MagmaRitaExtension(Extension):
                 filled.append(name + "=" + keys)
 
             # Free the keys Krita's defaults would otherwise swallow.
-            for name in keymap.CONFLICT_CLEAR:
-                a = K.action(name)
-                if a is not None and not a.shortcut().isEmpty():
-                    a.setShortcut(QKeySequence())
-                    filled.append("cleared " + name)
+            if not self.safe_mode:
+                for name in keymap.CONFLICT_CLEAR:
+                    a = K.action(name)
+                    if a is not None and not a.shortcut().isEmpty():
+                        a.setShortcut(QKeySequence())
+                        filled.append("cleared " + name)
 
-            try:
-                removed = keymap.patch_canvas_input()
-                if removed:
-                    _log("canvas input: removed %d conflicting bindings" % removed)
-            except Exception as exc:
-                _log("canvas input patch error: %r" % exc)
+            if not self.safe_mode:
+                try:
+                    removed = keymap.patch_canvas_input()
+                    if removed:
+                        _log("canvas input: removed %d conflicting bindings" % removed)
+                except Exception as exc:
+                    _log("canvas input patch error: %r" % exc)
             _log("=== MagmaRita %s bootstrap ===" % keymap.VERSION)
             for i, act in enumerate(self._slot_actions):
                 _log("slot %d -> key %r preset %r" % (
@@ -512,6 +564,54 @@ class MagmaRitaExtension(Extension):
         except Exception as exc:  # noqa: BLE001
             _log("settings error: %r" % exc)
             QMessageBox.warning(None, keymap.APP_NAME, "Settings failed:\n%s" % exc)
+
+    def _build_report(self):
+        K = Krita.instance()
+        version = self._krita_version()
+        out = [
+            "%s %s" % (keymap.APP_NAME, keymap.VERSION),
+            "Krita            : %s (%s)" % (
+                version, "tested" if keymap.version_supported(version) else "UNTESTED"),
+            "enforce_keymap   : %s" % self.cfg.get("enforce_keymap", True),
+            "safe_mode        : %s" % self.safe_mode,
+            "diagnostics log  : %s" % self.cfg.get("diagnostics", False),
+            "config file      : %s" % keymap.config_path(),
+            "log file         : %s" % keymap.log_path(),
+            "",
+            "Shortcuts (want -> got):",
+        ]
+        for name, keys in keymap.SHORTCUTS.items():
+            action = K.action(name)
+            got = action.shortcut().toString() if action is not None else "(no such action)"
+            out.append("  %-42s %-14s %s" % (name, keys, got or "(unbound)"))
+        out.append("")
+        out.append("Conflicts cleared:")
+        for name in keymap.CONFLICT_CLEAR:
+            action = K.action(name)
+            out.append("  %-42s %s" % (
+                name, action.shortcut().toString() if action is not None else "(no such action)"))
+        out.append("")
+        try:
+            out.append("canvas input: %d conflicting bindings removable"
+                       % keymap.patch_canvas_input(dry_run=True))
+        except Exception as exc:
+            out.append("canvas input: error %r" % exc)
+        out.append("")
+        out.append("Preset slots:")
+        for slot in self._slots:
+            preset = (slot or {}).get("preset") or ""
+            if preset:
+                missing = "  <-- NOT FOUND" if self._resolve_preset(preset) is None else ""
+                out.append("  %-6s %s%s" % ((slot or {}).get("key") or "-", preset, missing))
+        return "\n".join(out)
+
+    def _on_diagnostics(self):
+        try:
+            dialog = _ReportDialog("MagmaRita diagnostics", self._build_report(), None)
+            exec_fn = getattr(dialog, "exec_", None) or dialog.exec
+            exec_fn()
+        except Exception as exc:  # noqa: BLE001
+            QMessageBox.warning(None, keymap.APP_NAME, "Diagnostics failed:\n%s" % exc)
 
     def _on_about(self):
         QMessageBox.information(

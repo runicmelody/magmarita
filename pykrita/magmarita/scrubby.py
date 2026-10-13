@@ -31,6 +31,7 @@ DEFAULT_PIXELS_PER_STEP = 150.0
 DEFAULT_DEGREES_PER_PIXEL = 0.5
 PIVOT_DEAD_ZONE = 20.0
 MAX_STEP_PIXELS = 300
+SUPPORTED_KRITA = ("5.2", "5.3")
 
 
 def _krita_dirs():
@@ -69,6 +70,14 @@ def _trace(message):
             handle.write("[scrubby] " + message + "\n")
     except Exception:
         pass
+
+
+def _krita_supported():
+    try:
+        parts = str(Krita.instance().version()).split(".")
+        return ".".join(parts[:2]) in SUPPORTED_KRITA
+    except Exception:
+        return True
 
 
 class _DragWatch(QObject):
@@ -205,6 +214,9 @@ class ScrubbyZoomExtension(Extension):
 
     def arm(self, task):
         if self.armed or self.view() is None:
+            return
+        if self.settings.get("safe_mode", False) or not _krita_supported():
+            self._flash("Scrubby: safe mode - nothing changed")
             return
         self.armed = True
         self.task = task

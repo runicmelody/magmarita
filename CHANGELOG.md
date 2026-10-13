@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.0 - 2026-10-13
+- **Version guard + safe mode**: outside the tested Krita range (5.2-5.3) or with
+  "Safe mode" enabled, MagmaRita skips canvas-input patching and conflict clearing
+  and says so, instead of changing things it cannot verify.
+- **Diagnostics… menu action**: one window with Krita version, every shortcut
+  (wanted vs. actual), cleared conflicts, canvas-input dry run and a preset check,
+  with a copy button.
+- **Cross-platform dry-run test** (tests/test_installer.py) + CI matrix on
+  Ubuntu / macOS / Windows: redirects Krita's dirs to a temp folder, runs the
+  installer logic and asserts the result - no Krita required.
+
+
 ## 1.2.0 - 2026-10-13
 - Settings: **Enforce keymap** can be turned off - MagmaRita then only fills in
   keys you have not bound yourself instead of re-applying everything on start.

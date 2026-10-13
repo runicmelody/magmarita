@@ -14,7 +14,9 @@ import sys
 import time
 
 APP_NAME = "MagmaRita"
-VERSION = "1.2.0"
+# Krita versions this mapping has actually been tested against (major.minor).
+TESTED_KRITA = ("5.2", "5.3")
+VERSION = "1.3.0"
 HOMEPAGE = "https://github.com/runicmelody/magmarita"
 
 # ---------------------------------------------------------------------------
@@ -178,6 +180,7 @@ def _default_config():
             "key_hints": True,
             "enforce_keymap": True,
             "diagnostics": False,
+            "safe_mode": False,
             "line_tool": "KritaShape/KisToolLine",
             "line_restore_tool": "KritaShape/KisToolBrush",
             "zoom_sensitivity": DEFAULT_ZOOM_SENSITIVITY,
@@ -218,6 +221,7 @@ def load_config():
     cfg.setdefault("line_assist", True)
     cfg.setdefault("key_hints", True)
     cfg.setdefault("enforce_keymap", True)
+    cfg.setdefault("safe_mode", False)
     cfg.setdefault("diagnostics", False)
     cfg.setdefault("line_tool", "KritaShape/KisToolLine")
     cfg.setdefault("line_restore_tool", "KritaShape/KisToolBrush")
@@ -257,7 +261,7 @@ def _profile_filename(name):
     return re.sub(r"[^a-z0-9]", "", (name or "Krita Default").lower()) + ".profile"
 
 
-def patch_canvas_input():
+def patch_canvas_input(dry_run=False):
     """Drop the number/zoom key bindings from Krita's active canvas-input
     profile so they stop zooming/rotating the canvas.  Returns count removed."""
     path = os.path.join(resource_dir(), "input", _profile_filename(_active_input_profile_name()))
@@ -288,9 +292,18 @@ def patch_canvas_input():
                 continue
         idx += 1
         out.append(re.sub(r"^\s*\d+", str(idx), line))
-    if removed:
+    if removed and not dry_run:
         _write(path, "\n".join(out) + "\n")
     return removed
+
+
+def version_supported(version):
+    """True when "version" (e.g. 5.3.4) is inside the tested range."""
+    try:
+        parts = str(version).split(".")
+        return ".".join(parts[:2]) in TESTED_KRITA
+    except Exception:
+        return False
 
 
 def log_path():
