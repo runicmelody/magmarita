@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.3 - 2026-10-13
+- Discoverability: docs/FAQ.md with the questions people actually search for,
+  a keyword-rich landing page (site/) for GitHub Pages, richer GitHub repo
+  description and topics.
+
+
 ## 1.0.2 - 2026-10-13
 - Scrubby zoom/rotate rewritten as an independent clean-room implementation;
   the interaction idea is credited to 10zindraws/Scrubby-Zoom.
