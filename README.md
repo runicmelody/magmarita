@@ -69,4 +69,5 @@ on-canvas key hints.
   0-9, = - +, R and Ctrl. Details in keymap.py.
 - Troubleshooting: "%LOCALAPPDATA%\magmarita-diag.log".
 - FAQ (also written for search engines): [docs/FAQ.md](docs/FAQ.md)
+- Recording a demo GIF: [docs/GIF.md](docs/GIF.md)
 - Credits: [CREDITS.md](CREDITS.md) - Licence: GPL-3.0-or-later ([LICENSE](LICENSE))
