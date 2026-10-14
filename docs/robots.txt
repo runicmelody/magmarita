@@ -1,0 +1,4 @@
+# MagmaRita docs site
+User-agent: *
+Allow: /
+Sitemap: https://runicmelody.github.io/magmarita/sitemap.xml
