@@ -2,11 +2,11 @@
 
 ![MagmaRita](assets/branding/magmarita-logo-horizontal.png)
 
-**Moving from Magma to Krita?** MagmaRita puts Magma's **tool presets on the
-number keys** (1 dropper, 2 small eraser, 3 pen, ...) so you no longer set every
-tool up by hand - plus the Magma palette docker, scrubby zoom/rotate and the
-shortcuts you already know. Also described as *Magma keybinds for Krita* or
-*Magma shortcuts for Krita*.
+**Magma keybinds for Krita.** Moving from Magma to Krita? MagmaRita puts Magma's
+**tool presets on the number keys** (1 dropper, 2 small eraser, 3 pen, ...) so you
+no longer set every tool up by hand - plus the Magma palette docker, scrubby
+zoom/rotate and the shortcuts you already know. Also searched for as *Magma
+shortcuts for Krita* or *Magma to Krita plugin*.
 
 > ⚠️ **Unofficial.** Not affiliated with, sponsored by or endorsed by Magma or the
 > Krita Foundation. See [CREDITS.md](CREDITS.md).

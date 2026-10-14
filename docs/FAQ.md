@@ -10,6 +10,11 @@ keys** (ten slots; 1 dropper, 2 small eraser, 3 pen, 4 basic, 5 soft eraser,
 keypress instead of re-configuring brushes by hand. Any slot can be rebound in
 Settings or magmarita.json.
 
+**Magma keybinds for Krita - is there a plugin for that?**
+Yes: MagmaRita (this project). It applies Magma's keymap to Krita, puts the tool
+presets on the number keys and adds a Magma-style palette docker, so you can skip
+setting every tool up by hand.
+
 **Is there a Magma-style keymap for Krita?**
 Yes. MagmaRita applies Magma's shortcuts to Krita: B brush, E eraser, I (or 1)
 dropper, G fill, U rectangle, V move, Shift+T transform, [ ] brush size, = / -
