@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.2 - 2026-10-17
+- **Fixed the settings dialog**: the form could grow taller than the screen, so
+  the OK/Cancel buttons were unreachable and nothing could be saved. It now lives
+  in a scroll area with the buttons pinned at the bottom, the ten preset slots are
+  a compact 2-column grid, preset boxes are searchable, and the window is clamped
+  to 80% of the screen height.
+
+
 ## 1.5.1 - 2026-10-13
 - Credits clarified everywhere: scrubby zoom is **not** this project's work, it
   comes from Scrubby Zoom by 10zindraws and is only adapted here.
