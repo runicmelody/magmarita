@@ -72,9 +72,9 @@ def main():
     os.environ["MAGMARITA_CONFIG_DIR"] = os.path.join(tmp, "override-config")
     os.environ["MAGMARITA_RESOURCE_DIR"] = os.path.join(tmp, "override-krita")
     check("env override wins for config dir",
-          km.config_dir() == os.path.join(tmp, "override-config"))
+          km.config_dir() == os.path.join(tmp, "override-config"), km.config_dir())
     check("env override wins for resource dir",
-          km.resource_dir() == os.path.join(tmp, "override-krita"))
+          km.resource_dir() == os.path.join(tmp, "override-krita"), km.resource_dir())
     del os.environ["MAGMARITA_CONFIG_DIR"]
     del os.environ["MAGMARITA_RESOURCE_DIR"]
 

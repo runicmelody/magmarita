@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.4 - 2026-10-17
+- **Flatpak/Snap detection and the MAGMARITA_CONFIG_DIR / MAGMARITA_RESOURCE_DIR
+  overrides were only half-implemented**: the plugin had them, the installer and
+  docs did not (the earlier edit to keymap.py silently did not apply). Both path
+  helpers now match, and the installer test covers it.
+- Test runs in CI/weekly checks now fail loudly: the installer dry-run suite was
+  reporting failures that were being masked by shell exit-code handling.
+
+
 ## 1.5.3 - 2026-10-17
 - Settings dialog could not be saved: it grew taller **and** wider than the
   screen, so OK/Cancel were off-screen (and one Qt call would have crashed it).

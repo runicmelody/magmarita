@@ -16,7 +16,7 @@ import time
 APP_NAME = "MagmaRita"
 # Krita versions this mapping has actually been tested against (major.minor).
 TESTED_KRITA = ("5.2", "5.3")
-VERSION = "1.5.3"
+VERSION = "1.5.4"
 HOMEPAGE = "https://github.com/runicmelody/magmarita"
 
 # ---------------------------------------------------------------------------
@@ -312,21 +312,46 @@ def log_path():
 
 
 def config_dir():
-    """Directory that holds kritarc / kritashortcutsrc."""
+    """Directory that holds kritarc / kritashortcutsrc.
+
+    Honours MAGMARITA_CONFIG_DIR, then Flatpak/Snap sandboxes, then XDG.
+    """
+    override = os.environ.get("MAGMARITA_CONFIG_DIR")
+    if override:
+        return override
     if os.name == "nt":
         return os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
+    home = os.path.expanduser("~")
     if sys.platform == "darwin":
-        return os.path.join(os.path.expanduser("~"), "Library", "Preferences")
-    return os.path.join(os.path.expanduser("~"), ".config")
+        return os.path.join(home, "Library", "Preferences")
+    for sandbox in (os.path.join(home, ".var", "app", "org.kde.krita", "config"),
+                    os.path.join(home, "snap", "krita", "current", ".config")):
+        if os.path.isdir(sandbox):
+            return sandbox
+    return os.environ.get("XDG_CONFIG_HOME") or os.path.join(home, ".config")
+
 
 
 def resource_dir():
-    """Directory that holds Krita resources (and pykrita/)."""
+    """Directory that holds Krita resources (and pykrita/).
+
+    Honours MAGMARITA_RESOURCE_DIR, then Flatpak/Snap sandboxes, then XDG.
+    """
+    override = os.environ.get("MAGMARITA_RESOURCE_DIR")
+    if override:
+        return override
     if os.name == "nt":
         return os.path.join(os.environ.get("APPDATA") or os.path.expanduser("~"), "krita")
+    home = os.path.expanduser("~")
     if sys.platform == "darwin":
-        return os.path.join(os.path.expanduser("~"), "Library", "Application Support", "krita")
-    return os.path.join(os.path.expanduser("~"), ".local", "share", "krita")
+        return os.path.join(home, "Library", "Application Support", "krita")
+    for sandbox in (os.path.join(home, ".var", "app", "org.kde.krita", "data", "krita"),
+                    os.path.join(home, "snap", "krita", "current", ".local", "share", "krita")):
+        if os.path.isdir(sandbox):
+            return sandbox
+    base = os.environ.get("XDG_DATA_HOME") or os.path.join(home, ".local", "share")
+    return os.path.join(base, "krita")
+
 
 
 def shortcuts_path():
