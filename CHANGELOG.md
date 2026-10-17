@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.5.3 - 2026-10-17
+- Settings dialog could not be saved: it grew taller **and** wider than the
+  screen, so OK/Cancel were off-screen (and one Qt call would have crashed it).
+  Rebuilt it: scrollable body, buttons pinned below, preset slots as a compact
+  5x2 grid, searchable preset boxes, short labels, dialog clamped to the screen.
+- Added tests/test_settings_dialog.py (offscreen Qt): fails if the dialog can no
+  longer shrink to an 800px-wide screen, if the buttons leave the dialog, or if
+  the saved config stops round-tripping. Runs in CI on all three platforms.
+
+
 ## 1.5.2 - 2026-10-17
 - **Fixed the settings dialog**: the form could grow taller than the screen, so
   the OK/Cancel buttons were unreachable and nothing could be saved. It now lives

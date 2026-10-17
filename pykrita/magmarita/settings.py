@@ -1,10 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """MagmaRita settings dialog.
 
-Compact and scrollable on purpose: the form used to grow taller than the screen,
-which pushed the OK/Cancel buttons out of reach so nothing could be saved.
+Kept compact and scrollable on purpose: the form used to grow taller *and* wider
+than the screen, which pushed OK/Cancel out of reach so nothing could be saved.
 """
 
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import (
     QApplication,
@@ -19,6 +20,7 @@ from PyQt5.QtWidgets import (
     QKeySequenceEdit,
     QLabel,
     QScrollArea,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -27,8 +29,28 @@ from krita import Krita
 
 from . import keymap
 
-MAX_DIALOG_HEIGHT = 640
-SLOT_COLUMNS = 2
+MAX_DIALOG_HEIGHT = 620
+SLOT_ROWS = 5
+
+FIELD_MIN_WIDTH = 120
+COMBO_MAX_WIDTH = 220
+
+
+def _combo(items, current=None):
+    """A combo box that never forces the dialog to be wide."""
+    box = QComboBox()
+    box.setEditable(True)
+    box.setInsertPolicy(QComboBox.NoInsert)
+    box.setMinimumContentsLength(10)
+    box.setMinimumWidth(FIELD_MIN_WIDTH)
+    box.setMaximumWidth(COMBO_MAX_WIDTH)
+    box.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+    box.addItem("(none)")
+    for item in items:
+        box.addItem(item)
+    if current:
+        box.setCurrentText(current)
+    return box
 
 
 class MagmaRitaSettings(QDialog):
@@ -51,18 +73,21 @@ class MagmaRitaSettings(QDialog):
         outer = QVBoxLayout(self)
         outer.setContentsMargins(10, 10, 10, 10)
         outer.setSpacing(8)
-        outer.addWidget(QLabel("Keys are pressed in the field; presets can be typed to search.\n"
-                               "Everything here is saved to magmarita.json."))
 
-        # --- scrollable body, so the buttons always stay reachable -----------------
+        hint = QLabel("Press a key in the field. Preset boxes are searchable.\n"
+                      "Everything is saved to magmarita.json.")
+        hint.setWordWrap(True)
+        outer.addWidget(hint)
+
         body = QWidget()
         form = QFormLayout(body)
         form.setContentsMargins(0, 0, 0, 0)
         form.setVerticalSpacing(6)
-        form.setHorizontalSpacing(12)
-        form.setLabelAlignment(int(form.labelAlignment()))
+        form.setHorizontalSpacing(10)
+        form.setRowWrapPolicy(QFormLayout.WrapLongRows)
+        form.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
 
-        # preset slots: 2 columns x 5 rows instead of 10 stacked rows
+        # preset slots: 5 rows x 2 columns, compact fields
         slots_widget = QWidget()
         grid = QGridLayout(slots_widget)
         grid.setContentsMargins(0, 0, 0, 0)
@@ -75,109 +100,106 @@ class MagmaRitaSettings(QDialog):
             cell = QHBoxLayout()
             cell.setSpacing(4)
             number = QLabel("%d" % (i + 1))
-            number.setFixedWidth(16)
+            number.setFixedWidth(14)
             key_edit = QKeySequenceEdit()
-            key_edit.setMaximumWidth(110)
+            key_edit.setMinimumWidth(58)
+            key_edit.setMaximumWidth(80)
             key_edit.setKeySequence(QKeySequence(slot.get("key", "") or ""))
-            combo = QComboBox()
-            combo.setEditable(True)
-            combo.setInsertPolicy(QComboBox.NoInsert)
-            combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
-            combo.setMinimumContentsLength(18)
-            combo.addItem("(none)")
-            combo.addItems(self.presets)
-            current = slot.get("preset", "") or ""
-            if current in self.presets:
-                combo.setCurrentText(current)
-            elif current:
-                combo.setCurrentText(current)
+            combo = _combo(self.presets, (slot.get("preset", "") or "") or None)
             cell.addWidget(number)
             cell.addWidget(key_edit)
             cell.addWidget(combo, 1)
             holder = QWidget()
             holder.setLayout(cell)
-            grid.addWidget(holder, i % 5, i // 5)
+            grid.addWidget(holder, i % SLOT_ROWS, i // SLOT_ROWS)
             self.key_edits.append(key_edit)
             self.combos.append(combo)
-        form.addRow("Preset slots", slots_widget)
+            grid.setColumnStretch(i // SLOT_ROWS, 1)
+        form.addRow("Slots", slots_widget)
 
         self.zoomkey = QKeySequenceEdit()
-        self.zoomkey.setMaximumWidth(140)
+        self.zoomkey.setMaximumWidth(120)
         self.zoomkey.setKeySequence(QKeySequence(self.cfg.get("zoom_key", "Z") or "Z"))
         form.addRow("Zoom key", self.zoomkey)
 
         self.rotatekey = QKeySequenceEdit()
-        self.rotatekey.setMaximumWidth(140)
+        self.rotatekey.setMaximumWidth(120)
         self.rotatekey.setKeySequence(QKeySequence(self.cfg.get("rotate_key", "R") or "R"))
         form.addRow("Rotate key", self.rotatekey)
 
-        self.rotmode = QComboBox()
-        self.rotmode.addItem("Around canvas centre", "center")
-        self.rotmode.addItem("Horizontal (scrubby)", "scrubby")
-        index = self.rotmode.findData(str(self.cfg.get("rotate_mode", "center")))
-        if index >= 0:
-            self.rotmode.setCurrentIndex(index)
+        self.rotmode = _combo(["Around canvas centre", "Horizontal (scrubby)"])
+        self.rotmode.setEditable(False)
+        data = [("center", "Around canvas centre"), ("scrubby", "Horizontal (scrubby)")]
+        self.rotmode.clear()
+        for value, label in data:
+            self.rotmode.addItem(label, value)
+        for i, (value, _label) in enumerate(data):
+            if value == str(self.cfg.get("rotate_mode", "center")):
+                self.rotmode.setCurrentIndex(i)
         form.addRow("Rotate mode", self.rotmode)
 
         self.zoom = QDoubleSpinBox()
         self.zoom.setRange(10.0, 2000.0)
         self.zoom.setSingleStep(10.0)
         self.zoom.setValue(float(self.cfg.get("zoom_sensitivity", 150.0)))
-        form.addRow("Zoom sensitivity (px per doubling)", self.zoom)
+        self.zoom.setMaximumWidth(140)
+        form.addRow("Zoom sens. (px/double)", self.zoom)
 
         self.rotzoom = QDoubleSpinBox()
         self.rotzoom.setRange(0.05, 10.0)
         self.rotzoom.setSingleStep(0.1)
         self.rotzoom.setDecimals(2)
         self.rotzoom.setValue(float(self.cfg.get("rotate_sensitivity", 0.5)))
-        form.addRow("Rotate sensitivity (deg per px)", self.rotzoom)
+        self.rotzoom.setMaximumWidth(140)
+        form.addRow("Rotate sens. (deg/px)", self.rotzoom)
 
         self.lineassist = QCheckBox("Ctrl = straight line")
         self.lineassist.setChecked(bool(self.cfg.get("line_assist", True)))
         form.addRow("Line assist", self.lineassist)
 
         self.linetool = QComboBox()
-        self.linetool.addItem("Line (hold key, drag)", "KritaShape/KisToolLine")
-        self.linetool.addItem("Polyline (chained clicks)", "KisToolPolyline")
+        self.linetool.setEditable(False)
+        self.linetool.addItem("Line (drag)", "KritaShape/KisToolLine")
+        self.linetool.addItem("Polyline", "KisToolPolyline")
+        self.linetool.setMaximumWidth(200)
         index = self.linetool.findData(str(self.cfg.get("line_tool", "KritaShape/KisToolLine")))
         if index >= 0:
             self.linetool.setCurrentIndex(index)
         form.addRow("Line tool", self.linetool)
 
-        self.hints = QCheckBox("Show key hints on screen")
+        self.hints = QCheckBox("Flash hints on canvas")
         self.hints.setChecked(bool(self.cfg.get("key_hints", True)))
         form.addRow("Key hints", self.hints)
 
-        self.enforce = QCheckBox("Re-apply the Magma keymap on every start")
+        self.enforce = QCheckBox("Re-apply keymap on start")
         self.enforce.setChecked(bool(self.cfg.get("enforce_keymap", True)))
-        form.addRow("Enforce keymap", self.enforce)
+        form.addRow("Enforce", self.enforce)
 
-        self.safe = QCheckBox("Safe mode (skip risky config patching)")
+        self.safe = QCheckBox("Skip risky patches")
         self.safe.setChecked(bool(self.cfg.get("safe_mode", False)))
         form.addRow("Safe mode", self.safe)
 
-        self.diag = QCheckBox("Write a diagnostics log (off by default)")
+        self.diag = QCheckBox("Write a log (off)")
         self.diag.setChecked(bool(self.cfg.get("diagnostics", False)))
         form.addRow("Diagnostics", self.diag)
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         scroll.setWidget(body)
         outer.addWidget(scroll, 1)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
-        outer.addWidget(buttons)          # pinned below the scroll area, always visible
+        outer.addWidget(buttons)
 
-        # keep the dialog inside the screen
         try:
             screen = QApplication.primaryScreen().availableGeometry()
-            width = min(760, int(screen.width() * 0.75))
-            height = min(MAX_DIALOG_HEIGHT, int(screen.height() * 0.8))
+            self.resize(min(680, int(screen.width() * 0.9)),
+                        min(MAX_DIALOG_HEIGHT, int(screen.height() * 0.85)))
         except Exception:
-            width, height = 760, MAX_DIALOG_HEIGHT
-        self.resize(width, height)
+            self.resize(680, MAX_DIALOG_HEIGHT)
 
     def result_config(self):
         slots = []
